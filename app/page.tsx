@@ -135,6 +135,7 @@ export default function FinAgent() {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [lang, setLang] = useState<'ZH' | 'EN'>('ZH');
   
+  // 用户认证状态
   const [userAccount, setUserAccount] = useState<{email: string} | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'verify'>('login');
@@ -309,7 +310,7 @@ export default function FinAgent() {
   
   const handleReturnHome = () => { setSelectedTicker(null); setIsGlobalChatActive(false); setIsStockChatExpanded(false); setActiveNavIndex(0); };
 
-  // 🌟 登出与切换用户逻辑
+  // 登出与切换用户
   const handleLogout = () => {
       localStorage.removeItem('fin_agent_user');
       setUserAccount(null);
@@ -502,6 +503,7 @@ export default function FinAgent() {
      }
   };
 
+  // 🌟 统一的邮件与验证处理逻辑
   const handleSendEmail = async () => {
       if (!authEmail || !authEmail.includes('@')) return alert('请输入有效的邮箱地址');
       setIsSendingEmail(true);
@@ -541,6 +543,89 @@ export default function FinAgent() {
       } catch (e) {
           alert("验证服务请求失败，请检查网络环境。");
       }
+  };
+
+  // 🌟 统一抽离的认证弹窗渲染器
+  const renderAuthModal = () => {
+      if (!showAuthModal) return null;
+      return (
+          <div className="fixed inset-0 z-[6000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                  <div className="absolute top-4 right-4 z-10">
+                      <button onClick={() => setShowAuthModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"><X size={16}/></button>
+                  </div>
+                  
+                  <div className="p-10">
+                      <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100 shadow-sm mb-6">
+                          <Lock size={24} className="text-indigo-600" />
+                      </div>
+                      
+                      {authMode === 'verify' ? (
+                          <div className="text-center py-6 animate-in slide-in-from-right-4">
+                              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6"><Mail size={32} className="text-emerald-500"/></div>
+                              <h2 className="text-2xl font-black text-slate-900 mb-2"><span>Verify your email</span></h2>
+                              <div className="text-sm text-slate-500 mb-6 px-4"><span>We've sent a 6-digit code to <b>{authEmail}</b>. Check your inbox.</span></div>
+                              <input 
+                                  type="text" 
+                                  maxLength={6}
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-[0.5em] focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all mb-6"
+                                  placeholder="••••••"
+                                  value={userInputCode}
+                                  onChange={e => setUserInputCode(e.target.value)}
+                                  onKeyDown={e => e.key === 'Enter' && handleVerifyCode()}
+                              />
+                              <button onClick={handleVerifyCode} className="w-full py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center justify-center gap-2">
+                                  <CheckCircle2 size={18}/> <span>确认验证 (Verify)</span>
+                              </button>
+                          </div>
+                      ) : (
+                          <div className="animate-in slide-in-from-left-4">
+                              <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
+                                  <span>{authMode === 'login' ? 'Welcome back' : 'Create account'}</span>
+                              </h2>
+                              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">
+                                  <span>{authMode === 'login' ? 'Sign in to access your terminal' : 'Register for real-time alerts'}</span>
+                              </div>
+                              
+                              <div className="space-y-4">
+                                  <div>
+                                      <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Email Address</span></label>
+                                      <input 
+                                          type="email" 
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                          placeholder="name@company.com"
+                                          value={authEmail}
+                                          onChange={e => setAuthEmail(e.target.value)}
+                                      />
+                                  </div>
+                                  <div>
+                                      <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Password</span></label>
+                                      <input 
+                                          type="password" 
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                          placeholder="••••••••"
+                                          value={authPassword}
+                                          onChange={e => setAuthPassword(e.target.value)}
+                                          onKeyDown={e => e.key === 'Enter' && handleSendEmail()}
+                                      />
+                                  </div>
+                                  <button disabled={isSendingEmail} onClick={handleSendEmail} className="w-full mt-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50">
+                                      <span>{isSendingEmail ? 'Sending...' : (authMode === 'login' ? 'Sign In' : 'Register & Send Email')}</span>
+                                  </button>
+                              </div>
+                              
+                              <div className="mt-6 text-center text-xs text-slate-500">
+                                  <span>{authMode === 'login' ? "Don't have an account? " : "Already have an account? "}</span>
+                                  <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="font-bold text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
+                                      <span>{authMode === 'login' ? 'Sign up' : 'Log in'}</span>
+                                  </button>
+                              </div>
+                          </div>
+                      )}
+                  </div>
+              </div>
+          </div>
+      );
   };
 
   const currentNewsData = selectedTicker ? (stockDetail?.news || []) : globalNews;
@@ -601,85 +686,7 @@ export default function FinAgent() {
                       </div>
                   </div>
               </main>
-
-              {/* 🌟 欢迎页内的身份验证弹窗 */}
-              {showAuthModal && (
-                  <div className="fixed inset-0 z-[6000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-                      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
-                          <div className="absolute top-4 right-4 z-10">
-                              <button onClick={() => setShowAuthModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"><X size={16}/></button>
-                          </div>
-                          
-                          <div className="p-10">
-                              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100 shadow-sm mb-6">
-                                  <Lock size={24} className="text-indigo-600" />
-                              </div>
-                              
-                              {authMode === 'verify' ? (
-                                  <div className="text-center py-6 animate-in slide-in-from-right-4">
-                                      <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6"><Mail size={32} className="text-emerald-500"/></div>
-                                      <h2 className="text-2xl font-black text-slate-900 mb-2"><span>Verify your email</span></h2>
-                                      <div className="text-sm text-slate-500 mb-6 px-4"><span>We've sent a 6-digit code to <b>{authEmail}</b>. Check your inbox.</span></div>
-                                      <input 
-                                          type="text" 
-                                          maxLength={6}
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-[0.5em] focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all mb-6"
-                                          placeholder="••••••"
-                                          value={userInputCode}
-                                          onChange={e => setUserInputCode(e.target.value)}
-                                      />
-                                      <button onClick={handleVerifyCode} className="w-full py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center justify-center gap-2">
-                                          <CheckCircle2 size={18}/> <span>确认验证 (Verify)</span>
-                                      </button>
-                                  </div>
-                              ) : (
-                                  <div className="animate-in slide-in-from-left-4">
-                                      <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
-                                          <span>{authMode === 'login' ? 'Welcome back' : 'Create account'}</span>
-                                      </h2>
-                                      <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">
-                                          <span>{authMode === 'login' ? 'Sign in to access your terminal' : 'Register for real-time alerts'}</span>
-                                      </div>
-                                      
-                                      <div className="space-y-4">
-                                          <div>
-                                              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Email Address</span></label>
-                                              <input 
-                                                  type="email" 
-                                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
-                                                  placeholder="name@company.com"
-                                                  value={authEmail}
-                                                  onChange={e => setAuthEmail(e.target.value)}
-                                              />
-                                          </div>
-                                          <div>
-                                              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Password</span></label>
-                                              <input 
-                                                  type="password" 
-                                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
-                                                  placeholder="••••••••"
-                                                  value={authPassword}
-                                                  onChange={e => setAuthPassword(e.target.value)}
-                                                  onKeyDown={e => e.key === 'Enter' && handleSendEmail()}
-                                              />
-                                          </div>
-                                          <button disabled={isSendingEmail} onClick={handleSendEmail} className="w-full mt-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50">
-                                              <span>{isSendingEmail ? 'Sending...' : (authMode === 'login' ? 'Sign In' : 'Register & Send Email')}</span>
-                                          </button>
-                                      </div>
-                                      
-                                      <div className="mt-6 text-center text-xs text-slate-500">
-                                          <span>{authMode === 'login' ? "Don't have an account? " : "Already have an account? "}</span>
-                                          <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="font-bold text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
-                                              <span>{authMode === 'login' ? 'Sign up' : 'Log in'}</span>
-                                          </button>
-                                      </div>
-                                  </div>
-                              )}
-                          </div>
-                      </div>
-                  </div>
-              )}
+              {renderAuthModal()}
           </div>
       );
   }
@@ -1123,7 +1130,55 @@ export default function FinAgent() {
                         </div>
                      </div>
                   </div>
-                ) : null}
+                ) : (
+                   // 🌟 恢复的：主控制台欢迎入口 (Dashboard Hero)
+                   <div className="h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
+                      <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-700">
+                         <div className="cursor-pointer group relative" onClick={() => setIsGlobalChatActive(true)}>
+                             <div className="relative group-hover:scale-110 transition-transform duration-500 ease-out"><div className="absolute -inset-12 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" /><div className="w-24 h-24 bg-white border border-slate-100 rounded-3xl shadow-xl flex items-center justify-center relative z-10"><Bot size={48} className="text-indigo-600" /></div></div>
+                         </div>
+                         <div className="relative flex flex-col items-center gap-6 z-50">
+                            <div className="relative flex items-center gap-4">
+                                <div className="bg-white border border-slate-200 px-10 py-5 rounded-2xl shadow-xl flex items-center gap-5 cursor-pointer hover:border-indigo-300 hover:shadow-2xl transition-all group" onClick={() => setIsGlobalChatActive(true)}>
+                                    <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_12px_#10b981]" />
+                                    <span className="text-2xl text-slate-800 font-light tracking-wide group-hover:text-indigo-700 transition-colors"><span>{t.agent_welcome}</span></span>
+                                </div>
+                                <div className="relative group">
+                                    <button className={`flex items-center gap-3 px-6 py-5 rounded-2xl border font-bold transition-all shadow-xl bg-white ${
+                                        activeEngine === 'deepseek' ? 'border-indigo-200 text-indigo-700' :
+                                        activeEngine === 'zhipu' ? 'border-teal-200 text-teal-700' :
+                                        'border-blue-200 text-blue-700'
+                                    }`}>
+                                        {activeEngine === 'deepseek' ? <Flame size={20} /> : activeEngine === 'zhipu' ? <BrainCircuit size={20} /> : <CloudLightning size={20} />}
+                                        <span className="text-base"><span>{activeEngine === 'deepseek' ? 'DeepSeek V3' : activeEngine === 'zhipu' ? 'Zhipu GLM-5' : 'Gemini 1.5'}</span></span>
+                                        <ChevronDown size={16} className="opacity-50" />
+                                    </button>
+                                    <div className="absolute top-full left-0 mt-3 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden z-[100]">
+                                        <div className="p-2 space-y-1">
+                                            <div onClick={() => setActiveEngine('deepseek')} className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer rounded-xl hover:bg-slate-50 transition-colors ${activeEngine === 'deepseek' ? 'bg-indigo-50 border border-indigo-100' : 'border border-transparent'}`}>
+                                                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600"><Flame size={18} /></div>
+                                                <div><div className="text-sm font-bold text-slate-900"><span>DeepSeek V3</span></div><div className="text-[10px] font-medium text-slate-500 mt-0.5"><span>深度推理 (R1)</span></div></div>
+                                            </div>
+                                            <div onClick={() => setActiveEngine('zhipu')} className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer rounded-xl hover:bg-slate-50 transition-colors ${activeEngine === 'zhipu' ? 'bg-teal-50 border border-teal-100' : 'border border-transparent'}`}>
+                                                <div className="p-2 bg-teal-100 rounded-lg text-teal-600"><BrainCircuit size={18} /></div>
+                                                <div><div className="text-sm font-bold text-slate-900"><span>Zhipu GLM-5</span></div><div className="text-[10px] font-medium text-slate-500 mt-0.5"><span>强制思考模式</span></div></div>
+                                            </div>
+                                            <div className={`flex items-center gap-4 px-4 py-3.5 rounded-xl opacity-40 cursor-not-allowed bg-slate-50 border border-slate-100`}>
+                                                <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><CloudLightning size={18} /></div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-slate-900 flex items-center gap-2"><span>Google Gemini</span></div>
+                                                    <div className="text-[10px] font-bold text-orange-600 mt-0.5"><span>即将上线</span></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-xs font-mono font-bold tracking-[0.2em] text-slate-400 bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm"><span>{t.system_ready}</span></div>
+                         </div>
+                      </div>
+                   </div>
+                )}
              </section>
 
              {/* Right: News Sidebar */}
@@ -1472,6 +1527,9 @@ export default function FinAgent() {
               </div>
           </div>
       ) : null}
+
+      {/* 🌟 主控制台内的身份验证弹窗调用 */}
+      {renderAuthModal()}
 
       {/* --- Modals - Flow Chart Expanded --- */}
       {isFlowChartExpanded && stockDetail?.chart ? (
