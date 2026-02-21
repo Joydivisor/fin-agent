@@ -135,7 +135,7 @@ export default function FinAgent() {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [lang, setLang] = useState<'ZH' | 'EN'>('ZH');
   
-  // 用户认证状态
+  // 🌟 真实用户认证状态
   const [userAccount, setUserAccount] = useState<{email: string} | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'verify'>('login');
@@ -294,32 +294,49 @@ export default function FinAgent() {
       }, (text) => setWeeklyReport(text), () => setIsGeneratingReport(false));
   };
 
+  // 🌟 基于用户邮箱生成专属的 LocalStorage Key，保证数据绝对隔离
   const archiveConversation = (messages: ChatMessage[], type: string) => {
-      if (messages.length === 0) return;
+      if (messages.length === 0 || !userAccount?.email) return;
+      const email = userAccount.email;
       const firstUserMsg = messages.find(m => m.role === 'user')?.content || 'Unknown Topic';
       const cleanTitle = firstUserMsg.slice(0, 35) + (firstUserMsg.length > 35 ? '...' : '');
       const newArchive = { id: Date.now(), date: new Date().toLocaleDateString(), title: `[${type}] ${cleanTitle}` };
       const updatedArchives = [newArchive, ...chatArchives].slice(0, 20);
       setChatArchives(updatedArchives);
-      localStorage.setItem('fin_agent_archives', JSON.stringify(updatedArchives));
+      localStorage.setItem(`fin_agent_archives_${email}`, JSON.stringify(updatedArchives));
   };
 
-  const handleArchiveGlobalChat = () => { archiveConversation(globalChatMessages, 'Macro'); setGlobalChatMessages([]); localStorage.removeItem('fin_agent_global_chat'); };
-  const handleArchiveStockChat = () => { archiveConversation(stockChatMessages, selectedTicker?.symbol || 'Stock'); setStockChatMessages([]); };
-  const deleteArchive = (id: number) => { const updated = chatArchives.filter(a => a.id !== id); setChatArchives(updated); localStorage.setItem('fin_agent_archives', JSON.stringify(updated)); };
+  const handleArchiveGlobalChat = () => { 
+      archiveConversation(globalChatMessages, 'Macro'); 
+      setGlobalChatMessages([]); 
+      if (userAccount?.email) localStorage.removeItem(`fin_agent_global_chat_${userAccount.email}`); 
+  };
+  const handleArchiveStockChat = () => { 
+      archiveConversation(stockChatMessages, selectedTicker?.symbol || 'Stock'); 
+      setStockChatMessages([]); 
+  };
+  const deleteArchive = (id: number) => { 
+      const updated = chatArchives.filter(a => a.id !== id); 
+      setChatArchives(updated); 
+      if (userAccount?.email) localStorage.setItem(`fin_agent_archives_${userAccount.email}`, JSON.stringify(updated)); 
+  };
   
   const handleReturnHome = () => { setSelectedTicker(null); setIsGlobalChatActive(false); setIsStockChatExpanded(false); setActiveNavIndex(0); };
 
-  // 登出与切换用户
+  // 🌟 登出与切换用户逻辑修复
   const handleLogout = () => {
       localStorage.removeItem('fin_agent_user');
       setUserAccount(null);
       setShowLanding(true);
+      // 清空当前状态
+      setUserProfile('');
+      setChatArchives([]);
+      setGlobalChatMessages([]);
+      setWatchlist(DEFAULT_LIST);
   };
 
   const handleSwitchUser = () => {
-      localStorage.removeItem('fin_agent_user');
-      setUserAccount(null);
+      handleLogout();
       setAuthMode('login');
       setShowAuthModal(true);
   };
@@ -330,6 +347,7 @@ export default function FinAgent() {
     return () => window.removeEventListener('click', handleClickOutside);
   }, [floatingPrompt]);
 
+  // 1. 初始化检测用户
   useEffect(() => {
     setIsMounted(true); 
     const savedUser = localStorage.getItem('fin_agent_user');
@@ -337,19 +355,8 @@ export default function FinAgent() {
         setUserAccount(JSON.parse(savedUser));
         setShowLanding(false); 
     }
-    
-    const savedProfile = localStorage.getItem('fin_agent_profile');
-    if (savedProfile) setUserProfile(savedProfile);
-    const savedArchives = localStorage.getItem('fin_agent_archives');
-    if (savedArchives) setChatArchives(JSON.parse(savedArchives));
-    const savedGlobalChat = localStorage.getItem('fin_agent_global_chat');
-    if (savedGlobalChat) setGlobalChatMessages(JSON.parse(savedGlobalChat));
-
     setCurrentTime(new Date().toISOString());
     const timer = setInterval(() => setCurrentTime(new Date().toISOString()), 1000);
-    const saved = localStorage.getItem('fin_agent_watchlist');
-    if (saved) setWatchlist(JSON.parse(saved)); else { localStorage.setItem('fin_agent_watchlist', JSON.stringify(DEFAULT_LIST)); setWatchlist(DEFAULT_LIST); }
-    
     const handleEsc = (e: KeyboardEvent) => { 
       if (e.key === 'Escape') { 
         if(floatingPrompt) setFloatingPrompt(null);
@@ -364,9 +371,37 @@ export default function FinAgent() {
     };
     window.addEventListener('keydown', handleEsc);
     return () => { window.removeEventListener('keydown', handleEsc); clearInterval(timer); };
-  }, [tacticalNews, readingNews, selectedTicker, isGlobalChatActive, isStockChatExpanded, isFlowChartExpanded, floatingPrompt, showAuthModal]);
+  }, []);
 
-  useEffect(() => { if (globalChatMessages.length > 0) localStorage.setItem('fin_agent_global_chat', JSON.stringify(globalChatMessages)); }, [globalChatMessages]);
+  // 🌟 2. 监听用户状态变化，动态加载属于该用户的专属数据
+  useEffect(() => {
+      if (userAccount && userAccount.email) {
+          const email = userAccount.email;
+          const savedProfile = localStorage.getItem(`fin_agent_profile_${email}`);
+          if (savedProfile) setUserProfile(savedProfile); else setUserProfile('');
+
+          const savedArchives = localStorage.getItem(`fin_agent_archives_${email}`);
+          if (savedArchives) setChatArchives(JSON.parse(savedArchives)); else setChatArchives([]);
+
+          const savedGlobalChat = localStorage.getItem(`fin_agent_global_chat_${email}`);
+          if (savedGlobalChat) setGlobalChatMessages(JSON.parse(savedGlobalChat)); else setGlobalChatMessages([]);
+
+          const savedWatchlist = localStorage.getItem(`fin_agent_watchlist_${email}`);
+          if (savedWatchlist) {
+              setWatchlist(JSON.parse(savedWatchlist));
+          } else {
+              setWatchlist(DEFAULT_LIST);
+              localStorage.setItem(`fin_agent_watchlist_${email}`, JSON.stringify(DEFAULT_LIST));
+          }
+      }
+  }, [userAccount]);
+
+  useEffect(() => { 
+      if (globalChatMessages.length > 0 && userAccount?.email) {
+          localStorage.setItem(`fin_agent_global_chat_${userAccount.email}`, JSON.stringify(globalChatMessages)); 
+      }
+  }, [globalChatMessages, userAccount]);
+
   useEffect(() => { if (reportEndRef.current) reportEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [weeklyReport]);
 
   useEffect(() => { 
@@ -480,8 +515,22 @@ export default function FinAgent() {
   };
 
   const performSearch = async () => { if (!searchQuery) return; setIsSearching(true); try { const res = await fetch(`/api/search?q=${searchQuery}`); setSearchResults(await res.json()); } catch (e) { setSearchResults([]); } finally { setIsSearching(false); } };
-  const addToWatchlist = (symbol: string) => { const current = watchlist || []; if (!current.find(i => i.symbol === symbol)) { const newList = [...current, { symbol, pinned: false }]; setWatchlist(newList); localStorage.setItem('fin_agent_watchlist', JSON.stringify(newList)); } setSearchQuery(''); setSearchResults([]); setActiveNavIndex(0); };
-  const removeTicker = (symbol: string) => { if (!watchlist) return; const newList = watchlist.filter(i => i.symbol !== symbol); setWatchlist(newList); localStorage.setItem('fin_agent_watchlist', JSON.stringify(newList)); if (selectedTicker?.symbol === symbol) setSelectedTicker(null); };
+  const addToWatchlist = (symbol: string) => { 
+      const current = watchlist || []; 
+      if (!current.find(i => i.symbol === symbol)) { 
+          const newList = [...current, { symbol, pinned: false }]; 
+          setWatchlist(newList); 
+          if (userAccount?.email) localStorage.setItem(`fin_agent_watchlist_${userAccount.email}`, JSON.stringify(newList)); 
+      } 
+      setSearchQuery(''); setSearchResults([]); setActiveNavIndex(0); 
+  };
+  const removeTicker = (symbol: string) => { 
+      if (!watchlist) return; 
+      const newList = watchlist.filter(i => i.symbol !== symbol); 
+      setWatchlist(newList); 
+      if (userAccount?.email) localStorage.setItem(`fin_agent_watchlist_${userAccount.email}`, JSON.stringify(newList)); 
+      if (selectedTicker?.symbol === symbol) setSelectedTicker(null); 
+  };
 
   const getChangeColor = (change: number) => change > 0 ? 'text-rose-600' : change < 0 ? 'text-emerald-600' : 'text-slate-400';
   const getChartColor = () => { if (!stockDetail?.chart || stockDetail.chart.length === 0) return '#f97316'; const last = stockDetail.chart[stockDetail.chart.length - 1].price; const first = stockDetail.chart[0].price; return last >= first ? '#e11d48' : '#059669'; };
@@ -503,7 +552,6 @@ export default function FinAgent() {
      }
   };
 
-  // 🌟 统一的邮件与验证处理逻辑
   const handleSendEmail = async () => {
       if (!authEmail || !authEmail.includes('@')) return alert('请输入有效的邮箱地址');
       setIsSendingEmail(true);
@@ -535,6 +583,10 @@ export default function FinAgent() {
               const newUser = { email: authEmail };
               setUserAccount(newUser);
               localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
+              // 清除输入框状态
+              setAuthEmail('');
+              setUserInputCode('');
+              setAuthPassword('');
               setShowAuthModal(false);
               setShowLanding(false); 
           } else {
@@ -545,7 +597,6 @@ export default function FinAgent() {
       }
   };
 
-  // 🌟 统一抽离的认证弹窗渲染器
   const renderAuthModal = () => {
       if (!showAuthModal) return null;
       return (
@@ -750,7 +801,7 @@ export default function FinAgent() {
             
             <div className="w-px h-4 bg-slate-200 mx-1" />
             
-            {/* 🌟 全新设计的用户下拉菜单 */}
+            {/* 🌟 优雅的用户控制菜单 */}
             {userAccount ? (
                 <div className="relative group">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
@@ -758,12 +809,12 @@ export default function FinAgent() {
                         <span className="text-[10px] font-bold text-slate-700 truncate max-w-[100px]">{userAccount.email}</span>
                         <ChevronDown size={10} className="text-slate-400" />
                     </div>
-                    {/* 用户菜单下拉框 */}
+                    {/* 下拉面板 */}
                     <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                         <div className="p-1.5 flex flex-col gap-1">
                             <div onClick={() => setActiveNavIndex(3)} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors">
                                 <Settings size={14} className="text-slate-500" />
-                                <span className="text-xs font-bold text-slate-700"><span>Settings</span></span>
+                                <span className="text-xs font-bold text-slate-700"><span>Settings & Memory</span></span>
                             </div>
                             <div onClick={handleSwitchUser} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors">
                                 <RefreshCw size={14} className="text-slate-500" />
@@ -1131,51 +1182,52 @@ export default function FinAgent() {
                      </div>
                   </div>
                 ) : (
-                   // 🌟 恢复的：主控制台欢迎入口 (Dashboard Hero)
+                   // 🌟 修复：主工作台中控台对话框回归！
                    <div className="h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
-                      <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-700">
+                      <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-700 w-full max-w-3xl px-8">
+                         
+                         {/* 呼吸效果的机器人头像 */}
                          <div className="cursor-pointer group relative" onClick={() => setIsGlobalChatActive(true)}>
                              <div className="relative group-hover:scale-110 transition-transform duration-500 ease-out"><div className="absolute -inset-12 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" /><div className="w-24 h-24 bg-white border border-slate-100 rounded-3xl shadow-xl flex items-center justify-center relative z-10"><Bot size={48} className="text-indigo-600" /></div></div>
                          </div>
-                         <div className="relative flex flex-col items-center gap-6 z-50">
-                            <div className="relative flex items-center gap-4">
-                                <div className="bg-white border border-slate-200 px-10 py-5 rounded-2xl shadow-xl flex items-center gap-5 cursor-pointer hover:border-indigo-300 hover:shadow-2xl transition-all group" onClick={() => setIsGlobalChatActive(true)}>
-                                    <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_12px_#10b981]" />
-                                    <span className="text-2xl text-slate-800 font-light tracking-wide group-hover:text-indigo-700 transition-colors"><span>{t.agent_welcome}</span></span>
-                                </div>
-                                <div className="relative group">
-                                    <button className={`flex items-center gap-3 px-6 py-5 rounded-2xl border font-bold transition-all shadow-xl bg-white ${
-                                        activeEngine === 'deepseek' ? 'border-indigo-200 text-indigo-700' :
-                                        activeEngine === 'zhipu' ? 'border-teal-200 text-teal-700' :
-                                        'border-blue-200 text-blue-700'
-                                    }`}>
-                                        {activeEngine === 'deepseek' ? <Flame size={20} /> : activeEngine === 'zhipu' ? <BrainCircuit size={20} /> : <CloudLightning size={20} />}
-                                        <span className="text-base"><span>{activeEngine === 'deepseek' ? 'DeepSeek V3' : activeEngine === 'zhipu' ? 'Zhipu GLM-5' : 'Gemini 1.5'}</span></span>
-                                        <ChevronDown size={16} className="opacity-50" />
-                                    </button>
-                                    <div className="absolute top-full left-0 mt-3 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden z-[100]">
-                                        <div className="p-2 space-y-1">
-                                            <div onClick={() => setActiveEngine('deepseek')} className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer rounded-xl hover:bg-slate-50 transition-colors ${activeEngine === 'deepseek' ? 'bg-indigo-50 border border-indigo-100' : 'border border-transparent'}`}>
-                                                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600"><Flame size={18} /></div>
-                                                <div><div className="text-sm font-bold text-slate-900"><span>DeepSeek V3</span></div><div className="text-[10px] font-medium text-slate-500 mt-0.5"><span>深度推理 (R1)</span></div></div>
-                                            </div>
-                                            <div onClick={() => setActiveEngine('zhipu')} className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer rounded-xl hover:bg-slate-50 transition-colors ${activeEngine === 'zhipu' ? 'bg-teal-50 border border-teal-100' : 'border border-transparent'}`}>
-                                                <div className="p-2 bg-teal-100 rounded-lg text-teal-600"><BrainCircuit size={18} /></div>
-                                                <div><div className="text-sm font-bold text-slate-900"><span>Zhipu GLM-5</span></div><div className="text-[10px] font-medium text-slate-500 mt-0.5"><span>强制思考模式</span></div></div>
-                                            </div>
-                                            <div className={`flex items-center gap-4 px-4 py-3.5 rounded-xl opacity-40 cursor-not-allowed bg-slate-50 border border-slate-100`}>
-                                                <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><CloudLightning size={18} /></div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-slate-900 flex items-center gap-2"><span>Google Gemini</span></div>
-                                                    <div className="text-[10px] font-bold text-orange-600 mt-0.5"><span>即将上线</span></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="text-xs font-mono font-bold tracking-[0.2em] text-slate-400 bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm"><span>{t.system_ready}</span></div>
+                         
+                         <div className="text-center space-y-2">
+                             <div className="text-2xl font-light text-slate-800 tracking-wide flex items-center justify-center gap-3">
+                                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_12px_#10b981]" />
+                                 <span>{t.agent_welcome}</span>
+                             </div>
+                             <div className="text-xs font-mono font-bold tracking-[0.2em] text-slate-400 uppercase"><span>{t.system_ready}</span></div>
                          </div>
+                         
+                         {/* 🌟 核心修复：巨大的中心化对话框 */}
+                         <div className="w-full relative z-50">
+                             <div className="relative flex items-center gap-4 bg-white border border-slate-300 rounded-2xl p-2 pl-6 shadow-xl focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
+                                 <div className="text-indigo-500 font-mono text-lg animate-pulse font-bold"><span>{'>'}</span></div>
+                                 <input 
+                                     className="bg-transparent border-none outline-none text-lg text-slate-800 w-full placeholder:text-slate-400 font-sans py-3" 
+                                     placeholder={t.global_chat_placeholder} 
+                                     value={globalChatInput} 
+                                     onChange={(e) => setGlobalChatInput(e.target.value)} 
+                                     onKeyDown={(e) => {
+                                         if (e.key === 'Enter' && globalChatInput.trim()) {
+                                             setIsGlobalChatActive(true);
+                                             setTimeout(handleGlobalChatSend, 0); // 利用异步确保状态切换完毕后再发请求
+                                         }
+                                     }} 
+                                 />
+                                 <button 
+                                     disabled={!globalChatInput.trim()} 
+                                     className="p-4 bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 transition shadow-lg disabled:opacity-50" 
+                                     onClick={() => {
+                                         setIsGlobalChatActive(true);
+                                         setTimeout(handleGlobalChatSend, 0);
+                                     }}
+                                 >
+                                     <Send size={20} />
+                                 </button>
+                             </div>
+                         </div>
+
                       </div>
                    </div>
                 )}
@@ -1347,7 +1399,7 @@ export default function FinAgent() {
                                value={userProfile}
                                onChange={(e) => {
                                    setUserProfile(e.target.value);
-                                   localStorage.setItem('fin_agent_profile', e.target.value);
+                                   if (userAccount?.email) localStorage.setItem(`fin_agent_profile_${userAccount.email}`, e.target.value);
                                }}
                            />
                        </section>
@@ -1528,7 +1580,7 @@ export default function FinAgent() {
           </div>
       ) : null}
 
-      {/* 🌟 主控制台内的身份验证弹窗调用 */}
+      {/* 🌟 抽离的身份验证弹窗 */}
       {renderAuthModal()}
 
       {/* --- Modals - Flow Chart Expanded --- */}
