@@ -54,7 +54,7 @@ const TIME_RANGES = ['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'All'];
 type EngineType = 'gemini' | 'deepseek' | 'zhipu';
 type ChatMessage = { role: 'user' | 'assistant', content: string, timestamp: number };
 
-// 安全解析器
+// 🌟 安全解析器：杜绝 React 编译器嵌套报错
 const MessageFormatter = ({ content, isStreaming }: { content: string, isStreaming?: boolean }) => {
   const safeContent = content || '';
   const thinkStartIdx = safeContent.indexOf('> **🧠 深度思考中...**');
@@ -121,7 +121,6 @@ const MessageFormatter = ({ content, isStreaming }: { content: string, isStreami
 };
 
 export default function FinAgent() {
-  // 🌟 新增：挂载状态与欢迎页面状态
   const [isMounted, setIsMounted] = useState(false);
   const [showLanding, setShowLanding] = useState(true);
 
@@ -136,11 +135,14 @@ export default function FinAgent() {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [lang, setLang] = useState<'ZH' | 'EN'>('ZH');
   
+  // 🌟 真实用户认证状态
   const [userAccount, setUserAccount] = useState<{email: string} | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'verify'>('login');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [userInputCode, setUserInputCode] = useState('');
 
   const [floatingPrompt, setFloatingPrompt] = useState<{x: number, y: number, contextText: string} | null>(null);
   const [floatingInput, setFloatingInput] = useState('');
@@ -315,12 +317,11 @@ export default function FinAgent() {
   }, [floatingPrompt]);
 
   useEffect(() => {
-    setIsMounted(true); // 避免 Hydration 报错
-
+    setIsMounted(true); 
     const savedUser = localStorage.getItem('fin_agent_user');
     if (savedUser) {
         setUserAccount(JSON.parse(savedUser));
-        setShowLanding(false); // 有账号则跳过欢迎页直接进入控制台
+        setShowLanding(false); 
     }
     
     const savedProfile = localStorage.getItem('fin_agent_profile');
@@ -371,15 +372,15 @@ export default function FinAgent() {
       try { const res = await fetch(`/api/news?category=${activeTab}`); setGlobalNews(await res.json()); } 
       catch (e) {} finally { setIsLoadingNews(false); }
     };
-    if (!selectedTicker) {
+    if (!selectedTicker && !showLanding) {
         fetchSideNews();
         const interval = setInterval(fetchSideNews, 60000); 
         return () => clearInterval(interval);
     }
-  }, [activeTab, selectedTicker]);
+  }, [activeTab, selectedTicker, showLanding]);
 
   useEffect(() => {
-    if (activeNavIndex === 1) {
+    if (activeNavIndex === 1 && !showLanding) {
         const fetchAllNews = async () => {
             setIsLoadingAllNews(true);
             try {
@@ -397,7 +398,7 @@ export default function FinAgent() {
         const interval = setInterval(fetchAllNews, 60000); 
         return () => clearInterval(interval);
     }
-  }, [activeNavIndex]);
+  }, [activeNavIndex, showLanding]);
 
   useEffect(() => { if (isGlobalChatActive) globalChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [isGlobalChatActive, globalChatMessages]);
   useEffect(() => { stockChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [stockChatMessages]);
@@ -488,92 +489,46 @@ export default function FinAgent() {
      }
   };
 
-  const handleAuthSubmit = () => {
-      if (!authEmail || !authEmail.includes('@')) return alert('Please enter a valid email.');
-      if (authMode === 'login' || authMode === 'register') {
+  // 🌟 真实后端邮件通信交互
+  const handleSendEmail = async () => {
+      if (!authEmail || !authEmail.includes('@')) return alert('请输入有效的邮箱地址');
+      setIsSendingEmail(true);
+      try {
+          await fetch('/api/auth', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'send', email: authEmail }) 
+          });
           setAuthMode('verify');
-      } else if (authMode === 'verify') {
-          const newUser = { email: authEmail };
-          setUserAccount(newUser);
-          localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
-          setShowAuthModal(false);
-          // 验证成功后，自动关闭欢迎页进入控制台！
-          setShowLanding(false); 
+      } catch(e) {
+          console.error(e);
+          alert("邮件服务连接失败，请检查网络。");
+      } finally {
+          setIsSendingEmail(false);
       }
   };
 
-  // 🌟 统一抽离的认证弹窗组件
-  const renderAuthModal = () => {
-      if (!showAuthModal) return null;
-      return (
-          <div className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
-                  <div className="absolute top-4 right-4 z-10">
-                      <button onClick={() => setShowAuthModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"><X size={16}/></button>
-                  </div>
-                  
-                  <div className="p-10">
-                      <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100 shadow-sm mb-6">
-                          <Lock size={24} className="text-indigo-600" />
-                      </div>
-                      
-                      {authMode === 'verify' ? (
-                          <div className="text-center py-6 animate-in slide-in-from-right-4">
-                              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6"><Mail size={32} className="text-emerald-500"/></div>
-                              <h2 className="text-2xl font-black text-slate-900 mb-2"><span>Verify your email</span></h2>
-                              <div className="text-sm text-slate-500 mb-8 px-4"><span>We&apos;ve sent a verification link to <b>{authEmail}</b>. Please check your inbox to activate your account and receive future alerts.</span></div>
-                              <button onClick={handleAuthSubmit} className="w-full py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center justify-center gap-2">
-                                  <CheckCircle2 size={18}/> <span>Simulate Verification Success</span>
-                              </button>
-                          </div>
-                      ) : (
-                          <div className="animate-in slide-in-from-left-4">
-                              <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
-                                  <span>{authMode === 'login' ? 'Welcome back' : 'Create account'}</span>
-                              </h2>
-                              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">
-                                  <span>{authMode === 'login' ? 'Sign in to access your terminal' : 'Register for real-time alerts'}</span>
-                              </div>
-                              
-                              <div className="space-y-4">
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Email Address</span></label>
-                                      <input 
-                                          type="email" 
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
-                                          placeholder="name@company.com"
-                                          value={authEmail}
-                                          onChange={e => setAuthEmail(e.target.value)}
-                                      />
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Password</span></label>
-                                      <input 
-                                          type="password" 
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
-                                          placeholder="••••••••"
-                                          value={authPassword}
-                                          onChange={e => setAuthPassword(e.target.value)}
-                                          onKeyDown={e => e.key === 'Enter' && handleAuthSubmit()}
-                                      />
-                                  </div>
-                                  <button onClick={handleAuthSubmit} className="w-full mt-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30">
-                                      <span>{authMode === 'login' ? 'Sign In' : 'Register & Send Email'}</span>
-                                  </button>
-                              </div>
-                              
-                              <div className="mt-6 text-center text-xs text-slate-500">
-                                  <span>{authMode === 'login' ? "Don't have an account? " : "Already have an account? "}</span>
-                                  <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="font-bold text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
-                                      <span>{authMode === 'login' ? 'Sign up' : 'Log in'}</span>
-                                  </button>
-                              </div>
-                          </div>
-                      )}
-                  </div>
-              </div>
-          </div>
-      );
+  const handleVerifyCode = async () => {
+      try {
+          const res = await fetch('/api/auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'verify', email: authEmail, code: userInputCode })
+          });
+          const data = await res.json();
+          
+          if (res.ok) {
+              const newUser = { email: authEmail };
+              setUserAccount(newUser);
+              localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
+              setShowAuthModal(false);
+              setShowLanding(false); 
+          } else {
+              alert(data.error || "验证码错误，请重试！(开发测试期可直接输入万能码 123456)");
+          }
+      } catch (e) {
+          alert("验证服务请求失败，请检查网络环境。");
+      }
   };
 
   const currentNewsData = selectedTicker ? (stockDetail?.news || []) : globalNews;
@@ -582,7 +537,6 @@ export default function FinAgent() {
   const axisColor = '#64748b';
   const gridColor = '#e2e8f0';
 
-  // 避免服务端客户端渲染不一致报错
   if (!isMounted) return null;
 
   // ==========================================
@@ -591,7 +545,6 @@ export default function FinAgent() {
   if (showLanding) {
       return (
           <div className="min-h-screen w-full bg-slate-50 font-sans text-slate-800 flex flex-col relative selection:bg-indigo-500/20">
-              {/* Header */}
               <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-2 text-indigo-600 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100">
                       <Activity size={16} className="animate-pulse" /> 
@@ -600,7 +553,6 @@ export default function FinAgent() {
                   <button onClick={() => {setAuthMode('login'); setShowAuthModal(true);}} className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"><span>Sign In</span></button>
               </header>
               
-              {/* Hero Section */}
               <main className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
                   <div className="w-20 h-20 bg-white border border-slate-100 rounded-3xl shadow-xl flex items-center justify-center mb-8 relative">
                       <div className="absolute -inset-8 bg-indigo-400/20 rounded-full blur-2xl animate-pulse" />
@@ -609,9 +561,9 @@ export default function FinAgent() {
                   <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight mb-6 max-w-4xl leading-tight">
                       <span>The Autonomous </span><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-emerald-500">AI Financial</span><span> Terminal</span>
                   </h1>
-                  <p className="text-lg md:text-xl text-slate-500 max-w-2xl mb-12 leading-relaxed">
+                  <div className="text-lg md:text-xl text-slate-500 max-w-2xl mb-12 leading-relaxed font-medium">
                       <span>Deep research, real-time alerts, and personalized tactical analysis powered by next-gen reasoning models. Your 24/7 intelligent investment copilot.</span>
-                  </p>
+                  </div>
                   <button 
                       onClick={() => {setAuthMode('register'); setShowAuthModal(true);}} 
                       className="px-8 py-4 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-600/30 hover:bg-indigo-500 hover:scale-105 hover:shadow-2xl transition-all flex items-center gap-3"
@@ -619,7 +571,6 @@ export default function FinAgent() {
                       <span>Let's get started</span> <ArrowRight size={20} />
                   </button>
                   
-                  {/* Features Grid */}
                   <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full text-left">
                       <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
                           <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-6 border border-indigo-100"><BrainCircuit size={24}/></div>
@@ -638,13 +589,91 @@ export default function FinAgent() {
                       </div>
                   </div>
               </main>
-              {renderAuthModal()}
+
+              {/* 🌟 欢迎页内的身份验证弹窗 */}
+              {showAuthModal && (
+                  <div className="fixed inset-0 z-[6000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+                      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                          <div className="absolute top-4 right-4 z-10">
+                              <button onClick={() => setShowAuthModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"><X size={16}/></button>
+                          </div>
+                          
+                          <div className="p-10">
+                              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100 shadow-sm mb-6">
+                                  <Lock size={24} className="text-indigo-600" />
+                              </div>
+                              
+                              {authMode === 'verify' ? (
+                                  <div className="text-center py-6 animate-in slide-in-from-right-4">
+                                      <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6"><Mail size={32} className="text-emerald-500"/></div>
+                                      <h2 className="text-2xl font-black text-slate-900 mb-2"><span>Verify your email</span></h2>
+                                      <div className="text-sm text-slate-500 mb-6 px-4"><span>We've sent a 6-digit code to <b>{authEmail}</b>. Check your inbox.</span></div>
+                                      <input 
+                                          type="text" 
+                                          maxLength={6}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-[0.5em] focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all mb-6"
+                                          placeholder="••••••"
+                                          value={userInputCode}
+                                          onChange={e => setUserInputCode(e.target.value)}
+                                      />
+                                      <button onClick={handleVerifyCode} className="w-full py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center justify-center gap-2">
+                                          <CheckCircle2 size={18}/> <span>确认验证 (Verify)</span>
+                                      </button>
+                                  </div>
+                              ) : (
+                                  <div className="animate-in slide-in-from-left-4">
+                                      <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
+                                          <span>{authMode === 'login' ? 'Welcome back' : 'Create account'}</span>
+                                      </h2>
+                                      <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">
+                                          <span>{authMode === 'login' ? 'Sign in to access your terminal' : 'Register for real-time alerts'}</span>
+                                      </div>
+                                      
+                                      <div className="space-y-4">
+                                          <div>
+                                              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Email Address</span></label>
+                                              <input 
+                                                  type="email" 
+                                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                                  placeholder="name@company.com"
+                                                  value={authEmail}
+                                                  onChange={e => setAuthEmail(e.target.value)}
+                                              />
+                                          </div>
+                                          <div>
+                                              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Password</span></label>
+                                              <input 
+                                                  type="password" 
+                                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                                  placeholder="••••••••"
+                                                  value={authPassword}
+                                                  onChange={e => setAuthPassword(e.target.value)}
+                                                  onKeyDown={e => e.key === 'Enter' && handleSendEmail()}
+                                              />
+                                          </div>
+                                          <button disabled={isSendingEmail} onClick={handleSendEmail} className="w-full mt-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50">
+                                              <span>{isSendingEmail ? 'Sending...' : (authMode === 'login' ? 'Sign In' : 'Register & Send Email')}</span>
+                                          </button>
+                                      </div>
+                                      
+                                      <div className="mt-6 text-center text-xs text-slate-500">
+                                          <span>{authMode === 'login' ? "Don't have an account? " : "Already have an account? "}</span>
+                                          <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="font-bold text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
+                                              <span>{authMode === 'login' ? 'Sign up' : 'Log in'}</span>
+                                          </button>
+                                      </div>
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                  </div>
+              )}
           </div>
       );
   }
 
   // ==========================================
-  // 🌟 控制台页面 (Dashboard)
+  // 🌟 控制台主页面 (Dashboard)
   // ==========================================
   return (
     <div className="h-screen w-full flex flex-col font-sans overflow-hidden selection:bg-indigo-500/20 bg-slate-50 text-slate-800 relative">
@@ -654,7 +683,7 @@ export default function FinAgent() {
         <div className="flex gap-6 text-[11px] font-medium tracking-tight items-center">
             <div className="flex gap-2 items-center text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
                 <Activity size={14} className="animate-pulse" /> 
-                <span>FIN-AGENT</span>
+                <span className="font-black italic tracking-tighter text-xs">FIN-AGENT</span>
             </div>
             <div className="w-px h-4 bg-slate-200" />
             <div className="flex gap-5 overflow-hidden text-slate-500 font-mono items-center">
@@ -693,7 +722,7 @@ export default function FinAgent() {
                             <div className="p-1.5 bg-blue-100 rounded-md text-blue-600"><CloudLightning size={14} /></div>
                             <div>
                                 <div className="text-xs font-bold text-slate-800 flex items-center gap-2"><span>Google Gemini</span></div>
-                                <div className="text-[9px] text-orange-600 font-medium"><span>Coming Soon</span></div>
+                                <div className="text-[9px] font-bold text-orange-600 mt-0.5"><span>即将上线</span></div>
                             </div>
                         </div>
                     </div>
@@ -858,7 +887,6 @@ export default function FinAgent() {
                                 
                                 <div className="min-h-[220px] border-b border-slate-200 bg-slate-50/50 grid grid-cols-1 md:grid-cols-2 gap-4 p-5 shrink-0">
                                    
-                                   {/* 左侧：股东持仓分布卡片 */}
                                    <div className="flex flex-col bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
                                        <div className="flex items-center gap-2 mb-4">
                                            <div className="p-1.5 bg-indigo-50 rounded-lg border border-indigo-100"><Users size={14} className="text-indigo-600"/></div>
@@ -890,7 +918,6 @@ export default function FinAgent() {
                                        </div>
                                    </div>
 
-                                   {/* 右侧：核心持仓机构卡片 */}
                                    <div className="flex flex-col bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
                                        <div className="flex items-center gap-2 mb-4 shrink-0">
                                            <div className="p-1.5 bg-emerald-50 rounded-lg border border-emerald-100"><Building2 size={14} className="text-emerald-600"/></div>
@@ -1208,7 +1235,7 @@ export default function FinAgent() {
            </div>
         )}
 
-        {/* VIEW 3: Memory (独立的记忆库) */}
+        {/* VIEW 3: Memory */}
         {activeNavIndex === 3 && (
            <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-y-auto p-10">
                <div className="max-w-4xl mx-auto">
@@ -1221,7 +1248,6 @@ export default function FinAgent() {
                    </div>
                    <div className="space-y-10 text-sm text-slate-700 leading-relaxed">
                        
-                       {/* 用户记忆记录本 */}
                        <section className="bg-white p-8 rounded-3xl border border-indigo-100 shadow-md relative overflow-hidden">
                            <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500" />
                            <div className="text-lg font-black text-slate-900 mb-2 flex items-center gap-3"><User size={18} className="text-indigo-500"/> <span>Personal Identity</span></div>
@@ -1237,7 +1263,6 @@ export default function FinAgent() {
                            />
                        </section>
 
-                       {/* 历史对话归档展厅 */}
                        <section className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-inner">
                            <div className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3"><div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100"><Archive size={18} className="text-emerald-500"/></div> <span>Past Conversations</span></div>
                            <div className="text-xs text-slate-500 mb-6 font-medium"><span>每当您在工作台点击“归档并清空”按钮时，对话的核心摘要将保存于此，作为 AI 后续与您交流的底层记忆库。</span></div>
@@ -1263,7 +1288,7 @@ export default function FinAgent() {
            </div>
         )}
 
-        {/* VIEW 4: Weekly Report (智能周报) */}
+        {/* VIEW 4: Weekly Report */}
         {activeNavIndex === 4 && (
            <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-y-auto p-10">
                <div className="max-w-4xl mx-auto">
@@ -1314,7 +1339,7 @@ export default function FinAgent() {
            </div>
         )}
 
-        {/* VIEW 5: Help (独立的帮助中心) */}
+        {/* VIEW 5: Help */}
         {activeNavIndex === 5 && (
            <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-y-auto p-10">
                <div className="max-w-4xl mx-auto">
@@ -1371,10 +1396,10 @@ export default function FinAgent() {
 
       </main>
 
-      {/* --- 浮动提问框 (Floating Context Chat) --- */}
+      {/* --- 浮动提问框 --- */}
       {floatingPrompt ? (
           <div 
-             className="fixed z-[500] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-80 animate-in zoom-in-95 duration-200"
+             className="fixed z-[5000] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-80 animate-in zoom-in-95 duration-200"
              style={{ top: Math.min(floatingPrompt.y + 15, window.innerHeight - 150), left: Math.min(floatingPrompt.x + 15, window.innerWidth - 320) }}
              onClick={(e) => e.stopPropagation()}
           >
@@ -1412,6 +1437,134 @@ export default function FinAgent() {
                   ><Send size={14}/></button>
               </div>
           </div>
+      ) : null}
+
+      {/* --- Modals - Flow Chart Expanded --- */}
+      {isFlowChartExpanded && stockDetail?.chart ? (
+        <div className="fixed inset-0 z-[5000] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full h-full max-w-6xl max-h-[85vh] bg-white border border-slate-200 rounded-3xl flex flex-col shadow-2xl relative overflow-hidden">
+            <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/80 backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-200"><BarChart3 size={24} className="text-orange-500" /></div>
+                <div><h2 className="text-base font-black text-slate-900 uppercase tracking-widest"><span>{t.net_flow} (EXPANDED)</span></h2><div className="text-[11px] font-bold text-slate-500 font-mono mt-0.5"><span>{selectedTicker?.symbol} // {timeRange}</span></div></div>
+              </div>
+              <div className="flex items-center gap-5">
+                <div className="flex items-center gap-2 text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 animate-pulse"><ZoomIn size={14}/> <span>{t.scroll_zoom}</span></div>
+                <div className="flex gap-5 text-xs font-bold font-mono items-center bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-2 text-slate-600"><div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm"/> <span>{t.flow_in}</span></div>
+                  <div className="flex items-center gap-2 text-slate-600"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"/> <span>{t.flow_out}</span></div>
+                  <div className="flex items-center gap-2 text-slate-600"><div className="w-5 h-1.5 rounded-full bg-slate-300"/> <span>{t.cumulative}</span></div>
+                </div>
+                <button onClick={() => setIsFlowChartExpanded(false)} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all shadow-sm text-slate-500"><X size={20} /></button>
+              </div>
+            </div>
+            <div className="flex-1 p-8 bg-slate-50/50" onWheel={handleZoomWheel}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={zoomedChartData} margin={{top:20, right:40, left:20, bottom:20}} style={{ cursor: 'crosshair' }}>
+                  <CartesianGrid stroke="#e2e8f0" vertical={true} strokeDasharray="4 4" />
+                  <XAxis dataKey="normalizedTime" tick={{fontSize: 12, fill: '#64748b', fontWeight: 600}} minTickGap={50} tickFormatter={formatXAxis} dy={15} />
+                  <YAxis yAxisId="left" tick={{fontSize: 12, fill: '#64748b', fontWeight: 600}} tickFormatter={formatNumber} axisLine={false} tickLine={false} dx={-10} />
+                  <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: '#94a3b8', fontWeight: 600}} tickFormatter={formatNumber} axisLine={false} tickLine={false} dx={10} />
+                  <Tooltip cursor={{fill: 'rgba(99,102,241,0.05)'}} contentStyle={{backgroundColor:'#ffffff', border:'1px solid #e2e8f0', color:'#0f172a', fontSize:'13px', fontWeight: 'bold', borderRadius: '12px', padding: '12px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)'}} labelFormatter={formatXAxis} formatter={(val: number, name: string) => [formatNumber(val), name === 'netFlow' ? t.net_flow : t.cumulative]} />
+                  <ReferenceLine y={0} yAxisId="left" stroke={'#94a3b8'} strokeWidth={2} />
+                  <Bar yAxisId="left" dataKey="netFlow" barSize={12} radius={[3, 3, 0, 0]} isAnimationActive={false}>{zoomedChartData.map((entry: any, index: number) => (<Cell key={`cell-${index}`} fill={getFlowColor(entry.netFlow)} />))}</Bar>
+                  <Line yAxisId="right" type="monotone" dataKey="cumulativeFlow" stroke={'#64748b'} dot={false} strokeWidth={3} isAnimationActive={false} connectNulls={true} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Modals - AI Tactical Reports */}
+      {tacticalNews ? (
+        <div className="fixed inset-0 z-[5000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-200 w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+                <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/80 backdrop-blur-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-indigo-600"><Sparkles size={20} /></div>
+                        <div className="font-black uppercase tracking-widest text-indigo-600"><span>{t.tactical_title}</span></div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {!isStreaming && !tacticalDeep ? (
+                            <button onClick={() => {
+                                setTacticalDeep(true);
+                                setIsStreaming(true);
+                                const initText = tacticalReport + '\n\n---\n\n';
+                                streamAIResponse({ 
+                                    message: "请在此基础上进行更深入的博弈论推演和隐藏风险分析。", 
+                                    history: [{ role: 'assistant', content: tacticalReport }], 
+                                    context: { news: tacticalNews, symbol: selectedTicker?.symbol }, 
+                                    mode: 'tactical_deep' 
+                                }, (text) => setTacticalReport(text), () => setIsStreaming(false), initText);
+                            }} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold rounded-lg hover:bg-indigo-500 hover:text-white transition-all shadow-sm">
+                                <BrainCircuit size={12}/> <span>继续深度分析</span>
+                            </button>
+                        ) : null}
+                        {isStreaming ? (
+                            <button onClick={handleStopGeneration} className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-bold rounded-lg hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                                <Square size={10} fill="currentColor"/> <span>暂停生成</span>
+                            </button>
+                        ) : null}
+                        <button onClick={() => { handleStopGeneration(); setTacticalNews(null); }} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-all shadow-sm text-slate-500"><X size={18}/></button>
+                    </div>
+                </div>
+                <div className="p-10 font-sans text-sm text-slate-700 overflow-y-auto leading-relaxed bg-slate-50/30">
+                    <MessageFormatter content={tacticalReport} isStreaming={isStreaming} />
+                </div>
+            </div>
+        </div>
+      ) : null}
+
+      {/* Modals - Smart Reader */}
+      {readingNews ? (
+        <div className="fixed inset-0 z-[5000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-200 w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+                <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/80 backdrop-blur-sm">
+                    <div className="flex items-center gap-3 text-emerald-600">
+                        <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-200"><Globe2 size={20} /></div>
+                        <div className="font-black uppercase tracking-widest"><span>{t.trans_title}</span></div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {!isStreaming && !translationDeep ? (
+                            <button onClick={() => {
+                                setTranslationDeep(true);
+                                setIsStreaming(true);
+                                const initText = translationText + '\n\n---\n\n';
+                                streamAIResponse({ 
+                                    message: "请跳出字面翻译，结合当前宏观经济环境，深度剖析该事件对行业的深远影响和潜在的投资机会。", 
+                                    history: [{ role: 'assistant', content: translationText }], 
+                                    context: { news: readingNews }, 
+                                    mode: 'translation_deep' 
+                                }, (text) => setTranslationText(text), () => setIsStreaming(false), initText);
+                            }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-bold rounded-lg hover:bg-emerald-500 hover:text-white transition-all shadow-sm">
+                                <BrainCircuit size={12}/> <span>深度研报解析</span>
+                            </button>
+                        ) : null}
+                        {isStreaming ? (
+                            <button onClick={handleStopGeneration} className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-bold rounded-lg hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                                <Square size={10} fill="currentColor"/> <span>暂停生成</span>
+                            </button>
+                        ) : null}
+                        <button onClick={() => { handleStopGeneration(); setReadingNews(null); }} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-all shadow-sm text-slate-500"><X size={18}/></button>
+                    </div>
+                </div>
+                <div className="p-10 overflow-y-auto bg-slate-50/30">
+                    <div className="mb-8 p-6 bg-white border border-slate-200 border-l-4 border-l-emerald-500 rounded-2xl shadow-sm">
+                        <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest"><span>{t.trans_source}: </span><span className="text-slate-600">{readingNews.source}</span></div>
+                        <div className="text-lg font-black text-slate-900 leading-snug"><span>{readingNews.title}</span></div>
+                    </div>
+                    <div className="font-sans text-[15px] text-slate-700 leading-8 tracking-wide">
+                        <MessageFormatter content={translationText} isStreaming={isStreaming} />
+                    </div>
+                </div>
+                <div className="p-6 border-t border-slate-200 bg-white flex justify-end">
+                    <a href={readingNews.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black tracking-widest uppercase rounded-xl transition shadow-lg hover:shadow-emerald-500/30">
+                        <span>{t.trans_read_original}</span> <ExternalLink size={14} />
+                    </a>
+                </div>
+            </div>
+        </div>
       ) : null}
       
       {/* --- Footer --- */}
