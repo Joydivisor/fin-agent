@@ -16,6 +16,7 @@ import {
   Cell, PieChart, Pie, ComposedChart, CartesianGrid, Line, Bar
 } from 'recharts';
 
+// 🌟 修复后的全语言字典（包含 JA 和 KO，修复了拼写）
 const TRANSLATIONS = {
   ZH: {
     nav: ['工作台', '新闻', '预警', '记忆库', '智能周报', '帮助'],
@@ -33,7 +34,46 @@ const TRANSLATIONS = {
     scroll_zoom: '滚轮缩放', chat_thinking: '正在思考...', status: 'SYSTEM ONLINE', region: 'GLOBAL',
     no_alerts: '系统运行正常，当前暂无异动预警。', archive_clear: '归档并清空'
   },
-  EN: { nav: ['Workspaces', 'News', 'Alerts', 'Memory', 'Weekly Report', 'Help'], search: 'SEARCH TICKER...', scanning: 'Scanning...', top_stories: 'Top Stories', intel: 'Intel:', watchlist: 'Watchlist', prev_close: 'PREV CLOSE', net_flow: 'Smart Money Net Flow', ownership: 'Ownership Structure', top_inst: 'Top Institutions', inst: 'Institutions', insider: 'Insiders', retail: 'Retail/Public', agent_title: 'AGENT ANALYSIS', agent_placeholder: 'Ask about trend, resistance...', global_chat_placeholder: 'Enter macro commands...', agent_welcome: 'AI Terminal Ready', loading: 'Loading...', loading_news: 'Fetching...', global_chat_title: 'GLOBAL INSIGHT', esc_to_exit: 'ESC TO EXIT', system_ready: 'STANDBY', trans_title: 'AI Reader', trans_source: 'Source', trans_read_original: 'Original', tactical_title: 'TACTICAL', flow_in: 'In', flow_out: 'Out', cumulative: 'Cum', click_expand: 'Expand', scroll_zoom: 'Zoom', chat_thinking: 'Thinking...', status: 'SYSTEM ONLINE', region: 'GLOBAL', no_alerts: 'System stable. No active alerts.', archive_clear: 'Archive & Clear' }
+  EN: { 
+    nav: ['Workspaces', 'News', 'Alerts', 'Memory', 'Weekly Report', 'Help'], 
+    search: 'SEARCH TICKER...', scanning: 'Scanning...', top_stories: 'Top Stories', intel: 'Intel:', 
+    watchlist: 'Watchlist', prev_close: 'PREV CLOSE', net_flow: 'Smart Money Net Flow', ownership: 'Ownership Structure', 
+    top_inst: 'Top Institutions', inst: 'Institutions', insider: 'Insiders', retail: 'Retail/Public', 
+    agent_title: 'AGENT ANALYSIS', agent_placeholder: 'Ask about trend, resistance...', 
+    global_chat_placeholder: 'Enter macro commands...', agent_welcome: 'AI Terminal Ready', 
+    loading: 'Loading...', loading_news: 'Fetching...', global_chat_title: 'GLOBAL INSIGHT', 
+    esc_to_exit: 'ESC TO EXIT', system_ready: 'STANDBY', trans_title: 'AI Reader', 
+    trans_source: 'Source', trans_read_original: 'Original', tactical_title: 'TACTICAL', 
+    flow_in: 'In', flow_out: 'Out', cumulative: 'Cum', click_expand: 'Expand', 
+    scroll_zoom: 'Zoom', chat_thinking: 'Thinking...', status: 'SYSTEM ONLINE', region: 'GLOBAL', 
+    no_alerts: 'System stable. No active alerts.', archive_clear: 'Archive & Clear' 
+  },
+  JA: { 
+    nav: ['ワークスペース', 'ニュース', 'アラート', 'メモリー', '週次レポート', 'ヘルプ'], 
+    search: '検索...', scanning: 'スキャン中...', top_stories: 'トップニュース', intel: '情報:', 
+    watchlist: 'リスト', prev_close: '前日終値', net_flow: '純資金流入', ownership: '株主構成', 
+    top_inst: '主要保有機関', inst: '機関投資家', insider: '内部者', retail: '個人', 
+    agent_title: 'AI 分析', agent_placeholder: '質問する...', global_chat_placeholder: 'コマンドを入力...', 
+    agent_welcome: '準備完了', loading: '読み込み中...', loading_news: '取得中...', 
+    global_chat_title: 'インサイト', esc_to_exit: 'ESCで終了', system_ready: 'スタンバイ', 
+    trans_title: 'AI 翻訳', trans_source: 'ソース', trans_read_original: '原文リンク', 
+    tactical_title: '戦術分析', flow_in: '流入', flow_out: '流出', cumulative: '累積', 
+    click_expand: '拡大', scroll_zoom: 'ズーム', chat_thinking: '考え中...', status: 'オンライン', 
+    region: 'グローバル', no_alerts: 'システムは正常です。アラートはありません。', archive_clear: 'アーカイブして消去' 
+  },
+  KO: { 
+    nav: ['워크스페이스', '뉴스', '알림', '메모리', '주간 보고서', '도움말'], 
+    search: '검색...', scanning: '스캔 중...', top_stories: '주요 뉴스', intel: '정보:', 
+    watchlist: '관심종목', prev_close: '전일 종가', net_flow: '순유입', ownership: '주주 구성', 
+    top_inst: '주요 보유 기관', inst: '기관', insider: '내부자', retail: '개인', 
+    agent_title: 'AI 분석', agent_placeholder: '질문하기...', global_chat_placeholder: '명령 입력...', 
+    agent_welcome: '준비 완료', loading: '로딩 중...', loading_news: '가져오는 중...', 
+    global_chat_title: '인사이트', esc_to_exit: 'ESC 종료', system_ready: '대기 중', 
+    trans_title: 'AI 번역', trans_source: '출처', trans_read_original: '원문 링크', 
+    tactical_title: '전술 분석', flow_in: '유입', flow_out: '유출', cumulative: '누적', 
+    click_expand: '확대', scroll_zoom: '줌', chat_thinking: '생각 중...', status: '온라인', 
+    region: '글로벌', no_alerts: '시스템이 안정적입니다. 알림이 없습니다.', archive_clear: '보관 및 지우기' 
+  }
 };
 
 const CATEGORIES = [
@@ -54,7 +94,7 @@ const TIME_RANGES = ['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'All'];
 type EngineType = 'gemini' | 'deepseek' | 'zhipu';
 type ChatMessage = { role: 'user' | 'assistant', content: string, timestamp: number };
 
-// 安全解析器
+// 极致安全的 Markdown/思考过程解析器
 const MessageFormatter = ({ content, isStreaming }: { content: string, isStreaming?: boolean }) => {
   const safeContent = content || '';
   const thinkStartIdx = safeContent.indexOf('> **🧠 深度思考中...**');
@@ -133,7 +173,9 @@ export default function FinAgent() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [lang, setLang] = useState<'ZH' | 'EN'>('ZH');
+  
+  // 🌟 核心修复：解除语言类型锁定
+  const [lang, setLang] = useState<'ZH' | 'EN' | 'JA' | 'KO'>('ZH');
   
   // 🌟 真实用户认证状态
   const [userAccount, setUserAccount] = useState<{email: string} | null>(null);
@@ -190,7 +232,7 @@ export default function FinAgent() {
   const stockChatEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   
-  const t = TRANSLATIONS[lang as keyof typeof TRANSLATIONS];
+  const t = TRANSLATIONS[lang];
 
   const getOwnershipLabel = (name: string) => {
     if (name === 'Institutions') return t.inst;
@@ -549,7 +591,6 @@ export default function FinAgent() {
      }
   };
 
-  // 🌟 统一的验证表单提交：如果是登录则直连，如果是注册则发验证码
   const handleAuthAction = async () => {
       if (!authEmail || !authEmail.includes('@')) return alert('请输入有效的邮箱地址');
       if (!authPassword || authPassword.length < 6) return alert('密码长度不能少于6位');
@@ -791,7 +832,7 @@ export default function FinAgent() {
         
         <div className="flex items-center gap-4">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hidden sm:block"><span>AI Core:</span></span>
-            <div className="relative group">
+            <div className="relative group z-50">
                 <button className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all shadow-sm hover:shadow ${
                     activeEngine === 'deepseek' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100' :
                     activeEngine === 'zhipu' ? 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100' :
@@ -801,7 +842,7 @@ export default function FinAgent() {
                     <span>{activeEngine === 'deepseek' ? 'DeepSeek V3' : activeEngine === 'zhipu' ? 'Zhipu GLM-5' : 'Gemini 1.5'}</span>
                     <ChevronDown size={10} className="opacity-50" />
                 </button>
-                <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden">
                     <div className="p-1.5 flex flex-col gap-1">
                         <div onClick={() => setActiveEngine('deepseek')} className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors ${activeEngine === 'deepseek' ? 'bg-indigo-50 border border-indigo-100' : 'border border-transparent'}`}>
                             <div className="p-1.5 bg-indigo-100 rounded-md text-indigo-600"><Flame size={14} /></div>
@@ -824,7 +865,6 @@ export default function FinAgent() {
             
             <div className="w-px h-4 bg-slate-200 mx-1" />
             
-            {/* 🌟 优雅的用户控制菜单 */}
             {userAccount ? (
                 <div className="relative group z-50">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
@@ -832,7 +872,7 @@ export default function FinAgent() {
                         <span className="text-[10px] font-bold text-slate-700 truncate max-w-[100px]">{userAccount.email}</span>
                         <ChevronDown size={10} className="text-slate-400" />
                     </div>
-                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden">
                         <div className="p-1.5 flex flex-col gap-1">
                             <div onClick={() => setActiveNavIndex(3)} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors">
                                 <Settings size={14} className="text-slate-500" />
@@ -1220,7 +1260,7 @@ export default function FinAgent() {
                              <div className="text-xs font-mono font-bold tracking-[0.2em] text-slate-400 uppercase"><span>{t.system_ready}</span></div>
                          </div>
                          
-                         {/* 巨大中心化对话框 */}
+                         {/* 🌟 巨大中心化对话框 */}
                          <div className="w-full relative z-50">
                              <div className="relative flex items-center gap-4 bg-white border border-slate-300 rounded-2xl p-2 pl-6 shadow-xl focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
                                  <div className="text-indigo-500 font-mono text-lg animate-pulse font-bold"><span>{'>'}</span></div>
@@ -1232,7 +1272,7 @@ export default function FinAgent() {
                                      onKeyDown={(e) => {
                                          if (e.key === 'Enter' && globalChatInput.trim()) {
                                              setIsGlobalChatActive(true);
-                                             setTimeout(handleGlobalChatSend, 0); // 异步确保状态切换完毕后再发请求
+                                             setTimeout(handleGlobalChatSend, 0); // 利用异步确保状态切换完毕后再发请求
                                          }
                                      }} 
                                  />
