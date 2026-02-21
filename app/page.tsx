@@ -9,7 +9,7 @@ import {
   X, Users, Building2, Globe2, 
   Flame, CloudLightning, ChevronDown, ShieldAlert, Book, LayoutDashboard,
   Maximize2, Minimize2, ZoomIn, BarChart3, Archive, Mail, Lock, LogIn, CheckCircle2,
-  Square, Calendar, FileText, ArrowRight
+  Square, Calendar, FileText, ArrowRight, Settings, LogOut
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
@@ -54,7 +54,7 @@ const TIME_RANGES = ['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'All'];
 type EngineType = 'gemini' | 'deepseek' | 'zhipu';
 type ChatMessage = { role: 'user' | 'assistant', content: string, timestamp: number };
 
-// 🌟 安全解析器：杜绝 React 编译器嵌套报错
+// 安全解析器
 const MessageFormatter = ({ content, isStreaming }: { content: string, isStreaming?: boolean }) => {
   const safeContent = content || '';
   const thinkStartIdx = safeContent.indexOf('> **🧠 深度思考中...**');
@@ -135,7 +135,6 @@ export default function FinAgent() {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [lang, setLang] = useState<'ZH' | 'EN'>('ZH');
   
-  // 🌟 真实用户认证状态
   const [userAccount, setUserAccount] = useState<{email: string} | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'verify'>('login');
@@ -309,6 +308,20 @@ export default function FinAgent() {
   const deleteArchive = (id: number) => { const updated = chatArchives.filter(a => a.id !== id); setChatArchives(updated); localStorage.setItem('fin_agent_archives', JSON.stringify(updated)); };
   
   const handleReturnHome = () => { setSelectedTicker(null); setIsGlobalChatActive(false); setIsStockChatExpanded(false); setActiveNavIndex(0); };
+
+  // 🌟 登出与切换用户逻辑
+  const handleLogout = () => {
+      localStorage.removeItem('fin_agent_user');
+      setUserAccount(null);
+      setShowLanding(true);
+  };
+
+  const handleSwitchUser = () => {
+      localStorage.removeItem('fin_agent_user');
+      setUserAccount(null);
+      setAuthMode('login');
+      setShowAuthModal(true);
+  };
 
   useEffect(() => {
     const handleClickOutside = () => { if (floatingPrompt) setFloatingPrompt(null); };
@@ -489,7 +502,6 @@ export default function FinAgent() {
      }
   };
 
-  // 🌟 真实后端邮件通信交互
   const handleSendEmail = async () => {
       if (!authEmail || !authEmail.includes('@')) return alert('请输入有效的邮箱地址');
       setIsSendingEmail(true);
@@ -731,10 +743,32 @@ export default function FinAgent() {
             
             <div className="w-px h-4 bg-slate-200 mx-1" />
             
+            {/* 🌟 全新设计的用户下拉菜单 */}
             {userAccount ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                    <User size={12} className="text-indigo-500"/>
-                    <span className="text-[10px] font-bold text-slate-700 truncate max-w-[100px]">{userAccount.email}</span>
+                <div className="relative group">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                        <User size={12} className="text-indigo-500"/>
+                        <span className="text-[10px] font-bold text-slate-700 truncate max-w-[100px]">{userAccount.email}</span>
+                        <ChevronDown size={10} className="text-slate-400" />
+                    </div>
+                    {/* 用户菜单下拉框 */}
+                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                        <div className="p-1.5 flex flex-col gap-1">
+                            <div onClick={() => setActiveNavIndex(3)} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors">
+                                <Settings size={14} className="text-slate-500" />
+                                <span className="text-xs font-bold text-slate-700"><span>Settings</span></span>
+                            </div>
+                            <div onClick={handleSwitchUser} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors">
+                                <RefreshCw size={14} className="text-slate-500" />
+                                <span className="text-xs font-bold text-slate-700"><span>Switch User</span></span>
+                            </div>
+                            <div className="h-px bg-slate-100 my-0.5" />
+                            <div onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-rose-50 transition-colors">
+                                <LogOut size={14} className="text-rose-500" />
+                                <span className="text-xs font-bold text-rose-600"><span>Logout</span></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             ) : (
                 <button onClick={() => {setAuthMode('login'); setShowAuthModal(true);}} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white border border-indigo-700 rounded-lg hover:bg-indigo-500 transition-all shadow-sm">
