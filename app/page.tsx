@@ -294,7 +294,6 @@ export default function FinAgent() {
       }, (text) => setWeeklyReport(text), () => setIsGeneratingReport(false));
   };
 
-  // 🌟 基于用户邮箱生成专属的 LocalStorage Key，保证数据绝对隔离
   const archiveConversation = (messages: ChatMessage[], type: string) => {
       if (messages.length === 0 || !userAccount?.email) return;
       const email = userAccount.email;
@@ -323,12 +322,10 @@ export default function FinAgent() {
   
   const handleReturnHome = () => { setSelectedTicker(null); setIsGlobalChatActive(false); setIsStockChatExpanded(false); setActiveNavIndex(0); };
 
-  // 🌟 登出与切换用户逻辑修复
   const handleLogout = () => {
       localStorage.removeItem('fin_agent_user');
       setUserAccount(null);
       setShowLanding(true);
-      // 清空当前状态
       setUserProfile('');
       setChatArchives([]);
       setGlobalChatMessages([]);
@@ -347,7 +344,6 @@ export default function FinAgent() {
     return () => window.removeEventListener('click', handleClickOutside);
   }, [floatingPrompt]);
 
-  // 1. 初始化检测用户
   useEffect(() => {
     setIsMounted(true); 
     const savedUser = localStorage.getItem('fin_agent_user');
@@ -373,7 +369,6 @@ export default function FinAgent() {
     return () => { window.removeEventListener('keydown', handleEsc); clearInterval(timer); };
   }, []);
 
-  // 🌟 2. 监听用户状态变化，动态加载属于该用户的专属数据
   useEffect(() => {
       if (userAccount && userAccount.email) {
           const email = userAccount.email;
@@ -515,6 +510,7 @@ export default function FinAgent() {
   };
 
   const performSearch = async () => { if (!searchQuery) return; setIsSearching(true); try { const res = await fetch(`/api/search?q=${searchQuery}`); setSearchResults(await res.json()); } catch (e) { setSearchResults([]); } finally { setIsSearching(false); } };
+  
   const addToWatchlist = (symbol: string) => { 
       const current = watchlist || []; 
       if (!current.find(i => i.symbol === symbol)) { 
@@ -524,6 +520,7 @@ export default function FinAgent() {
       } 
       setSearchQuery(''); setSearchResults([]); setActiveNavIndex(0); 
   };
+  
   const removeTicker = (symbol: string) => { 
       if (!watchlist) return; 
       const newList = watchlist.filter(i => i.symbol !== symbol); 
@@ -552,19 +549,46 @@ export default function FinAgent() {
      }
   };
 
-  const handleSendEmail = async () => {
+  // 🌟 统一的验证表单提交：如果是登录则直连，如果是注册则发验证码
+  const handleAuthAction = async () => {
       if (!authEmail || !authEmail.includes('@')) return alert('请输入有效的邮箱地址');
+      if (!authPassword || authPassword.length < 6) return alert('密码长度不能少于6位');
+      
       setIsSendingEmail(true);
       try {
-          await fetch('/api/auth', { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'send', email: authEmail }) 
-          });
-          setAuthMode('verify');
+          if (authMode === 'login') {
+              const res = await fetch('/api/auth', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'login', email: authEmail, password: authPassword })
+              });
+              const data = await res.json();
+              if (res.ok) {
+                  const newUser = { email: authEmail };
+                  setUserAccount(newUser);
+                  localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
+                  setAuthEmail('');
+                  setAuthPassword('');
+                  setShowAuthModal(false);
+                  setShowLanding(false);
+              } else {
+                  alert(data.error || '登录失败');
+              }
+          } else if (authMode === 'register') {
+              const res = await fetch('/api/auth', { 
+                  method: 'POST', 
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'send', email: authEmail }) 
+              });
+              if (res.ok) {
+                  setAuthMode('verify');
+              } else {
+                  alert('验证码发送失败，请检查网络或后端配置。');
+              }
+          }
       } catch(e) {
           console.error(e);
-          alert("邮件服务连接失败，请检查网络。");
+          alert("服务连接失败，请检查网络。");
       } finally {
           setIsSendingEmail(false);
       }
@@ -575,7 +599,7 @@ export default function FinAgent() {
           const res = await fetch('/api/auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'verify', email: authEmail, code: userInputCode })
+              body: JSON.stringify({ action: 'verify', email: authEmail, code: userInputCode, password: authPassword })
           });
           const data = await res.json();
           
@@ -583,7 +607,6 @@ export default function FinAgent() {
               const newUser = { email: authEmail };
               setUserAccount(newUser);
               localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
-              // 清除输入框状态
               setAuthEmail('');
               setUserInputCode('');
               setAuthPassword('');
@@ -657,11 +680,11 @@ export default function FinAgent() {
                                           placeholder="••••••••"
                                           value={authPassword}
                                           onChange={e => setAuthPassword(e.target.value)}
-                                          onKeyDown={e => e.key === 'Enter' && handleSendEmail()}
+                                          onKeyDown={e => e.key === 'Enter' && handleAuthAction()}
                                       />
                                   </div>
-                                  <button disabled={isSendingEmail} onClick={handleSendEmail} className="w-full mt-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50">
-                                      <span>{isSendingEmail ? 'Sending...' : (authMode === 'login' ? 'Sign In' : 'Register & Send Email')}</span>
+                                  <button disabled={isSendingEmail} onClick={handleAuthAction} className="w-full mt-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50">
+                                      <span>{isSendingEmail ? (authMode === 'login' ? 'Signing In...' : 'Sending...') : (authMode === 'login' ? 'Sign In' : 'Register & Send Email')}</span>
                                   </button>
                               </div>
                               
@@ -803,13 +826,12 @@ export default function FinAgent() {
             
             {/* 🌟 优雅的用户控制菜单 */}
             {userAccount ? (
-                <div className="relative group">
+                <div className="relative group z-50">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
                         <User size={12} className="text-indigo-500"/>
                         <span className="text-[10px] font-bold text-slate-700 truncate max-w-[100px]">{userAccount.email}</span>
                         <ChevronDown size={10} className="text-slate-400" />
                     </div>
-                    {/* 下拉面板 */}
                     <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                         <div className="p-1.5 flex flex-col gap-1">
                             <div onClick={() => setActiveNavIndex(3)} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors">
@@ -1186,7 +1208,6 @@ export default function FinAgent() {
                    <div className="h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
                       <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-700 w-full max-w-3xl px-8">
                          
-                         {/* 呼吸效果的机器人头像 */}
                          <div className="cursor-pointer group relative" onClick={() => setIsGlobalChatActive(true)}>
                              <div className="relative group-hover:scale-110 transition-transform duration-500 ease-out"><div className="absolute -inset-12 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" /><div className="w-24 h-24 bg-white border border-slate-100 rounded-3xl shadow-xl flex items-center justify-center relative z-10"><Bot size={48} className="text-indigo-600" /></div></div>
                          </div>
@@ -1199,7 +1220,7 @@ export default function FinAgent() {
                              <div className="text-xs font-mono font-bold tracking-[0.2em] text-slate-400 uppercase"><span>{t.system_ready}</span></div>
                          </div>
                          
-                         {/* 🌟 核心修复：巨大的中心化对话框 */}
+                         {/* 巨大中心化对话框 */}
                          <div className="w-full relative z-50">
                              <div className="relative flex items-center gap-4 bg-white border border-slate-300 rounded-2xl p-2 pl-6 shadow-xl focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
                                  <div className="text-indigo-500 font-mono text-lg animate-pulse font-bold"><span>{'>'}</span></div>
@@ -1211,7 +1232,7 @@ export default function FinAgent() {
                                      onKeyDown={(e) => {
                                          if (e.key === 'Enter' && globalChatInput.trim()) {
                                              setIsGlobalChatActive(true);
-                                             setTimeout(handleGlobalChatSend, 0); // 利用异步确保状态切换完毕后再发请求
+                                             setTimeout(handleGlobalChatSend, 0); // 异步确保状态切换完毕后再发请求
                                          }
                                      }} 
                                  />
