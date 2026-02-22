@@ -1,177 +1,115 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import fetch from 'node-fetch';
 
-export const maxDuration = 60; 
+// 🌟 核心升级：超级本地极速缓存字典 (专注覆盖期货、外汇、指数与A股俗称)
+// 提示：普通的股票如“中国平安”，即使不写在这里，底层的在线 API 也能自动搜出来！
+const ASSET_DICTIONARY: Record<string, { symbol: string, name: string }> = {
+    // --- 贵金属 & 大宗商品 (期货) ---
+    '黄金': { symbol: 'GC=F', name: 'Gold (黄金期货主连)' },
+    '白银': { symbol: 'SI=F', name: 'Silver (白银期货主连)' },
+    '原油': { symbol: 'CL=F', name: 'Crude Oil (WTI原油)' },
+    '布伦特原油': { symbol: 'BZ=F', name: 'Brent Crude (布伦特原油)' },
+    '铜': { symbol: 'HG=F', name: 'Copper (铜期货)' },
+    '天然气': { symbol: 'NG=F', name: 'Natural Gas (天然气)' },
+    '玉米': { symbol: 'ZC=F', name: 'Corn (玉米)' },
+    '大豆': { symbol: 'ZS=F', name: 'Soybean (大豆)' },
+    '小麦': { symbol: 'ZW=F', name: 'Wheat (小麦)' },
 
-const PROXY_URL = process.env.PROXY_URL; 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY;
-const ZHIPU_KEY = process.env.ZHIPU_API_KEY; 
+    // --- 全球核心宏观指数 ---
+    '标普': { symbol: '^GSPC', name: 'S&P 500 (标普500指数)' },
+    '标普500': { symbol: '^GSPC', name: 'S&P 500 (标普500指数)' },
+    '纳指': { symbol: '^IXIC', name: 'NASDAQ (纳斯达克综合指数)' },
+    '纳斯达克': { symbol: '^IXIC', name: 'NASDAQ (纳斯达克综合指数)' },
+    '道指': { symbol: '^DJI', name: 'Dow Jones (道琼斯工业指数)' },
+    '罗素2000': { symbol: '^RUT', name: 'Russell 2000 (罗素2000小盘股)' },
+    '恐慌指数': { symbol: '^VIX', name: 'VIX (CBOE恐慌指数)' },
+    '恒指': { symbol: '^HSI', name: 'Hang Seng (恒生指数)' },
+    '恒生科技': { symbol: '^HSTECH', name: 'Hang Seng Tech (恒生科技指数)' },
+    '日经': { symbol: '^N225', name: 'Nikkei 225 (日经225指数)' },
+    '上证': { symbol: '000001.SS', name: 'SSE Composite (上证指数)' },
+    '深证': { symbol: '399001.SZ', name: 'SZSE Component (深证成指)' },
+    '创业板': { symbol: '399006.SZ', name: 'ChiNext (创业板指)' },
+    '沪深300': { symbol: '000300.SS', name: 'CSI 300 (沪深300指数)' },
+    '科创50': { symbol: '399808.SS', name: 'STAR 50 (科创50指数)' },
 
-const agent = PROXY_URL ? new HttpsProxyAgent(PROXY_URL) : undefined;
+    // --- 核心外汇汇率 ---
+    '美元人民币': { symbol: 'CNY=X', name: 'USD/CNY (美元兑人民币)' },
+    '离岸人民币': { symbol: 'CNH=X', name: 'USD/CNH (美元兑离岸人民币)' },
+    '欧元美元': { symbol: 'EURUSD=X', name: 'EUR/USD (欧元兑美元)' },
+    '美元日元': { symbol: 'JPY=X', name: 'USD/JPY (美元兑日元)' },
+    '英镑美元': { symbol: 'GBPUSD=X', name: 'GBP/USD (英镑兑美元)' },
+    '美元指数': { symbol: 'DX-Y.NYB', name: 'U.S. Dollar Index (美元指数)' },
 
-function returnErrorStream(msg: string) {
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(`⚠️ 系统提示: ${msg}`));
-        controller.close();
-      }
-    });
-    return new NextResponse(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-}
+    // --- 顶级加密货币 ---
+    '比特币': { symbol: 'BTC-USD', name: 'Bitcoin (比特币)' },
+    '以太坊': { symbol: 'ETH-USD', name: 'Ethereum (以太坊)' },
+    '狗狗币': { symbol: 'DOGE-USD', name: 'Dogecoin (狗狗币)' },
+    '索拉纳': { symbol: 'SOL-USD', name: 'Solana (SOL)' },
 
-async function fetchFullArticle(url: string) {
-  if (!url) return null;
-  try {
-    const jinaUrl = `https://r.jina.ai/${url}`;
-    const res = await fetch(jinaUrl, {
-        headers: { 'X-Return-Format': 'markdown', 'User-Agent': 'Mozilla/5.0' },
-        agent: agent, 
-        timeout: 8000 
-    });
-    if (!res.ok) return null;
-    const text = await res.text();
-    if (text.length < 100 || text.includes("Access Denied")) return null;
-    return text;
-  } catch (e) { 
-    return null; 
-  }
-}
+    // --- 极高频中文俗称映射 (兜底) ---
+    '腾讯': { symbol: '0700.HK', name: 'Tencent (腾讯控股)' },
+    '阿里': { symbol: 'BABA', name: 'Alibaba (阿里巴巴)' },
+    '拼多多': { symbol: 'PDD', name: 'Pinduoduo (拼多多)' },
+    '网易': { symbol: 'NTES', name: 'NetEase (网易)' },
+    '苹果': { symbol: 'AAPL', name: 'Apple (苹果)' },
+    '英伟达': { symbol: 'NVDA', name: 'NVIDIA (英伟达)' },
+    '微软': { symbol: 'MSFT', name: 'Microsoft (微软)' },
+    '特斯拉': { symbol: 'TSLA', name: 'Tesla (特斯拉)' },
+    '茅台': { symbol: '600519.SS', name: 'Kweichow Moutai (贵州茅台)' },
+    '宁王': { symbol: '300750.SZ', name: 'CATL (宁德时代)' },
+    '比亚迪': { symbol: '002594.SZ', name: 'BYD (比亚迪)' }
+};
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { message, history = [], context, mode, provider = 'zhipu', userProfile, chatArchives = [] } = body; 
-
-    let openai: OpenAI;
-    let modelName = '';
-    let isReasoningModel = false;
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get('q');
     
-    const isFastPath = (mode === 'translation' || mode === 'tactical');
-    // 🌟 将周报加入深度思考轨道
-    const isDeepPath = (mode === 'translation_deep' || mode === 'tactical_deep' || mode === 'weekly_report');
+    if (!q) return NextResponse.json([]);
 
-    if (provider === 'zhipu') {
-        if (!ZHIPU_KEY) return returnErrorStream("未检测到 ZHIPU_API_KEY，请在后台环境变量中配置。");
-        openai = new OpenAI({ apiKey: ZHIPU_KEY, baseURL: 'https://open.bigmodel.cn/api/paas/v4/' });
-        modelName = 'glm-5'; 
-        isReasoningModel = !isFastPath; 
-    } else if (provider === 'deepseek') {
-        if (!DEEPSEEK_KEY) return returnErrorStream("未检测到 DEEPSEEK_API_KEY，请在后台环境变量中配置。");
-        openai = new OpenAI({ apiKey: DEEPSEEK_KEY, baseURL: 'https://api.deepseek.com' });
-        modelName = isFastPath ? 'deepseek-chat' : 'deepseek-reasoner'; 
-        isReasoningModel = modelName === 'deepseek-reasoner';
-    } else {
-        if (!GEMINI_KEY) return returnErrorStream("未检测到 GEMINI_API_KEY，请在后台环境变量中配置。");
-        openai = new OpenAI({ apiKey: GEMINI_KEY, baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', httpAgent: agent });
-        modelName = isFastPath ? 'gemini-1.5-flash' : 'gemini-1.5-pro'; 
-        isReasoningModel = !isFastPath;
-    }
+    let results: any[] = [];
+    const lowerQ = q.toLowerCase();
 
-    let systemPrompt = "";
-    let userContent = "";
-    let temperature = isReasoningModel ? 0.7 : 0.2; 
-
-    // 🌟 新增：智能周报处理逻辑
-    if (mode === 'weekly_report') {
-        const dynamicTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-        systemPrompt = `身份：FIN-AGENT 首席智能投资顾问。时间：${dynamicTime}。
-任务：根据用户提供的【历史记忆档案】和【自选股列表】，生成一份专属的《本周财经周报与战术推演》。
-包含板块：
-1. 🔍 核心关注点复盘（结合记忆库分析用户的投资偏好与焦虑点）。
-2. 📊 资产异动与宏观市场洞察。
-3. 💡 下周战术推演与操作建议。
-风格：专业、数据驱动、有深度。使用清晰的 Markdown 排版。`;
-        const archiveContext = chatArchives.length > 0 ? chatArchives.map((a:any) => `- ${a.date}: ${a.title}`).join('\n') : "本周暂无深度对话记录。";
-        userContent = `【历史记忆档案】\n${archiveContext}\n\n【用户自选股】\n${context?.watchlist || '暂无'}\n\n【用户设定偏好】\n${userProfile || '未设置'}`;
-    }
-    // 其他原有的处理逻辑
-    else if (mode.includes('tactical')) {
-        let fullArticleText = (!isDeepPath && context?.news?.link) ? await fetchFullArticle(context.news.link) : null;
-        systemPrompt = isDeepPath 
-            ? `身份：华尔街资深量化策略师。\n任务：基于初步分析，启动深度博弈论推演、隐藏风险拆解及主力资金意图探测。`
-            : `身份：华尔街策略师。\n任务：快速总结此新闻对标的资产的直接影响。保持冷峻简练。`;
-        const content = fullArticleText || `标题：${context.news.title}`;
-        userContent = `目标标的：${context.symbol || "宏观市场"}\n情报内容：\n${content}\n\n${message || ''}`;
-    } 
-    else if (mode.includes('translation')) {
-        let fullArticleText = (!isDeepPath && context?.news?.link) ? await fetchFullArticle(context.news.link) : null;
-        systemPrompt = isDeepPath
-            ? `身份：资深行业研究员。\n任务：跳出字面翻译，深度剖析该事件对全球宏观或行业生态的深远影响。`
-            : `身份：金融情报官。任务：极速提炼核心逻辑。输出：1.中文核心标题 2.三句执行摘要(Bullet Points)。`;
-        const content = fullArticleText || `标题：${context.news.title}`;
-        userContent = `原文：\n${content}\n\n${message || ''}`;
-    } 
-    else {
-        const dynamicTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-        const tickerContext = context?.symbol ? `用户聚焦资产: ${context.symbol} (最新现价: ${context.price})。` : `全局宏观工作台。`;
-        const memoryContext = userProfile ? `\n【用户专属偏好】\n${userProfile}` : "";
-        const archiveContext = chatArchives.length > 0 ? `\n【历史记忆摘要】\n${chatArchives.map((a:any) => `- ${a.title}`).join('\n')}` : "";
-
-        systemPrompt = `你是 FIN-AGENT。引擎: ${modelName}。
-【全局上下文】
-时间: ${dynamicTime}
-状态: ${tickerContext}${memoryContext}${archiveContext}
-【准则】专业、极简、数据驱动。结合历史记忆提供连贯顾问服务。`;
-        userContent = message;
-    }
-
-    const messagesPayload: any[] = [{ role: "system", content: systemPrompt }];
-    if (history && history.length > 0) messagesPayload.push(...history);
-    messagesPayload.push({ role: "user", content: userContent });
-
-    const requestPayload: any = {
-      messages: messagesPayload,
-      model: modelName, 
-      stream: true, 
-      temperature: temperature,
-      max_tokens: 8000, 
-    };
-
-    if (provider === 'zhipu' && isReasoningModel) {
-        requestPayload.thinking = { type: "enabled" }; 
-    }
-
-    const completion = await openai.chat.completions.create(requestPayload);
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        let hasStartedThinking = false;
-        let hasFinishedThinking = false;
-
-        for await (const chunk of completion) {
-          const delta: any = chunk.choices[0]?.delta || {};
-          const reasoningContent = delta.reasoning_content || ''; 
-          const content = delta.content || '';
-
-          if (reasoningContent) {
-             if (!hasStartedThinking) {
-                 hasStartedThinking = true;
-                 controller.enqueue(new TextEncoder().encode("> **🧠 深度思考中...**\n> \n> "));
-             }
-             const formattedReasoning = reasoningContent.replace(/\n/g, '\n> ');
-             controller.enqueue(new TextEncoder().encode(formattedReasoning));
-          }
-          if (content) {
-             if (hasStartedThinking && !hasFinishedThinking) {
-                 hasFinishedThinking = true;
-                 controller.enqueue(new TextEncoder().encode("\n\n---\n\n"));
-             }
-             controller.enqueue(new TextEncoder().encode(content));
-          }
+    // 🌟 第一层拦截：秒级匹配本地极速字典 (支持模糊搜索，如输入"原油"会匹配"布伦特原油")
+    for (const key in ASSET_DICTIONARY) {
+        if (key.includes(lowerQ) || lowerQ.includes(key)) {
+            results.push(ASSET_DICTIONARY[key]);
         }
-        controller.close();
-      }
-    });
-
-    return new NextResponse(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-
-  } catch (error: any) {
-    if (error.message?.includes('abort')) {
-        return returnErrorStream("生成已由用户手动停止。");
     }
-    return returnErrorStream(error.message);
-  }
+
+    // 🌟 第二层拦截：A股代码智能推断 (全自动补全沪深后缀)
+    if (/^\d{6}$/.test(lowerQ)) {
+        if (lowerQ.startsWith('6')) {
+            results.push({ symbol: `${lowerQ}.SS`, name: 'Shanghai A-Share (沪市 A 股)' });
+        } else if (lowerQ.startsWith('0') || lowerQ.startsWith('3')) {
+            results.push({ symbol: `${lowerQ}.SZ`, name: 'Shenzhen A-Share (深市 A 股)' });
+        }
+    }
+
+    // 🌟 第三层拦截：雅虎金融在线数据库兜底 (处理字典外的所有几万只普通股票)
+    try {
+        const yfRes = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=6`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        
+        if (yfRes.ok) {
+            const data = await yfRes.json();
+            if (data.quotes && data.quotes.length > 0) {
+                const yfResults = data.quotes
+                    .filter((quote: any) => quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF') // 过滤掉无关的垃圾结果
+                    .map((quote: any) => ({
+                        symbol: quote.symbol,
+                        name: quote.shortname || quote.longname || quote.symbol
+                    }));
+                // 将在线结果追加到字典结果之后
+                results = [...results, ...yfResults];
+            }
+        }
+    } catch (e) {
+        console.error("Search API Error:", e);
+    }
+
+    // 🌟 结果清洗：去重，防止字典和雅虎搜出重复的代码
+    const uniqueResults = Array.from(new Map(results.map(item => [item.symbol, item])).values());
+
+    // 限制最多返回 8 条提示，保持 UI 优雅
+    return NextResponse.json(uniqueResults.slice(0, 8));
 }
