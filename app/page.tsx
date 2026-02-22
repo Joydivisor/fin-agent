@@ -16,7 +16,6 @@ import {
   Cell, PieChart, Pie, ComposedChart, CartesianGrid, Line, Bar
 } from 'recharts';
 
-// 🌟 修复后的全语言字典（包含 JA 和 KO，修复了拼写）
 const TRANSLATIONS = {
   ZH: {
     nav: ['工作台', '新闻', '预警', '记忆库', '智能周报', '帮助'],
@@ -94,7 +93,7 @@ const TIME_RANGES = ['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'All'];
 type EngineType = 'gemini' | 'deepseek' | 'zhipu';
 type ChatMessage = { role: 'user' | 'assistant', content: string, timestamp: number };
 
-// 极致安全的 Markdown/思考过程解析器
+// 安全解析器
 const MessageFormatter = ({ content, isStreaming }: { content: string, isStreaming?: boolean }) => {
   const safeContent = content || '';
   const thinkStartIdx = safeContent.indexOf('> **🧠 深度思考中...**');
@@ -174,10 +173,8 @@ export default function FinAgent() {
   const [isSearching, setIsSearching] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
   
-  // 🌟 核心修复：解除语言类型锁定
   const [lang, setLang] = useState<'ZH' | 'EN' | 'JA' | 'KO'>('ZH');
   
-  // 🌟 真实用户认证状态
   const [userAccount, setUserAccount] = useState<{email: string} | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'verify'>('login');
@@ -267,7 +264,17 @@ export default function FinAgent() {
           body: JSON.stringify(payload),
           signal: abortControllerRef.current.signal
       });
-      if (!res.ok) throw new Error("API Connection Failed");
+      
+      // 🌟 核心修复 1：更精准的报错捕获，不再只是干巴巴的 API Connection Failed
+      if (!res.ok) {
+          let errorMsg = `API Connection Failed (${res.status})`;
+          try {
+              const errData = await res.json();
+              if (errData.error) errorMsg = `错误: ${errData.error}`;
+          } catch(e) {}
+          throw new Error(errorMsg);
+      }
+      
       if (!res.body) return;
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -285,7 +292,7 @@ export default function FinAgent() {
       if (err.name === 'AbortError' || err.message.includes('aborted')) {
           onUpdate(initialText + '\n\n**[ 生成已由用户暂停 ]**');
       } else {
-          onUpdate(initialText + `\n\n⚠️ Error: ${err.message}`); 
+          onUpdate(initialText + `\n\n⚠️ 系统警告: ${err.message}\n(如果是 500 错误，请检查 Vercel 的环境变量配置或执行时长限制)`); 
       }
       onComplete(); 
     }
@@ -553,6 +560,15 @@ export default function FinAgent() {
 
   const performSearch = async () => { if (!searchQuery) return; setIsSearching(true); try { const res = await fetch(`/api/search?q=${searchQuery}`); setSearchResults(await res.json()); } catch (e) { setSearchResults([]); } finally { setIsSearching(false); } };
   
+  // 🌟 核心修复 2：分离“预览”和“加入自选”逻辑
+  const handleViewFromSearch = (res: any) => {
+      setSelectedTicker({ symbol: res.symbol, name: res.name });
+      setTimeRange('1D');
+      setSearchQuery('');
+      setSearchResults([]);
+      setActiveNavIndex(0); // 导航回主工作台
+  };
+
   const addToWatchlist = (symbol: string) => { 
       const current = watchlist || []; 
       if (!current.find(i => i.symbol === symbol)) { 
@@ -560,7 +576,7 @@ export default function FinAgent() {
           setWatchlist(newList); 
           if (userAccount?.email) localStorage.setItem(`fin_agent_watchlist_${userAccount.email}`, JSON.stringify(newList)); 
       } 
-      setSearchQuery(''); setSearchResults([]); setActiveNavIndex(0); 
+      // 加完之后不跳走，留在原地看
   };
   
   const removeTicker = (symbol: string) => { 
@@ -872,7 +888,7 @@ export default function FinAgent() {
                         <span className="text-[10px] font-bold text-slate-700 truncate max-w-[100px]">{userAccount.email}</span>
                         <ChevronDown size={10} className="text-slate-400" />
                     </div>
-                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden">
+                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                         <div className="p-1.5 flex flex-col gap-1">
                             <div onClick={() => setActiveNavIndex(3)} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors">
                                 <Settings size={14} className="text-slate-500" />
@@ -904,7 +920,7 @@ export default function FinAgent() {
         <div className="flex items-center gap-4 w-2/5 relative">
           <div 
              onClick={handleReturnHome} 
-             className="cursor-pointer bg-slate-50 border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 text-slate-500 p-2.5 rounded-xl transition-all shadow-sm group relative flex items-center justify-center"
+             className="cursor-pointer bg-slate-50 border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 text-slate-500 p-2.5 rounded-xl transition-all shadow-sm group relative flex items-center justify-center z-[60]"
           >
              <LayoutDashboard size={16} />
              <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-white text-[11px] font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-[60] shadow-xl transition-opacity">
@@ -925,13 +941,13 @@ export default function FinAgent() {
               {searchResults.length > 0 ? (
                   <div className="absolute top-full left-0 w-full bg-white border border-slate-200 mt-2 rounded-2xl shadow-2xl max-h-[400px] overflow-y-auto py-2">
                       {searchResults.map((res) => (
-                          <div key={res.symbol} onClick={() => addToWatchlist(res.symbol)} className="px-5 py-3 hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-100 last:border-0 group transition-colors">
+                          <div key={res.symbol} onClick={() => handleViewFromSearch(res)} className="px-5 py-3 hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-100 last:border-0 group transition-colors">
                               <div>
                                   <div className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 font-mono transition-colors">{res.symbol}</div>
                                   <div className="text-[11px] text-slate-500 mt-0.5">{res.name}</div>
                               </div>
                               <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                                  <span className="text-slate-400 group-hover:text-indigo-500">+</span>
+                                  <span className="text-slate-400 group-hover:text-indigo-500"><ArrowRight size={12}/></span>
                               </div>
                           </div>
                       ))}
@@ -995,15 +1011,25 @@ export default function FinAgent() {
                 {selectedTicker ? (
                   <>
                     <div className="px-8 py-5 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 z-10">
-                      <div>
+                      <div className="flex items-center gap-4">
                           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                               <span>{selectedTicker.symbol}</span> 
                               <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-semibold border border-slate-200">{selectedTicker.name}</span>
                           </h1>
+                          {/* 🌟 核心功能 2：加入自选按钮，如果不在自选里才显示 */}
+                          {!watchlist?.some(w => w.symbol === selectedTicker.symbol) && (
+                              <button 
+                                  onClick={() => addToWatchlist(selectedTicker.symbol)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-xs font-bold transition-all shadow-sm border border-indigo-100 animate-in fade-in slide-in-from-left-2"
+                              >
+                                  <span className="text-lg leading-none">+</span>
+                                  <span>加入自选 (Add)</span>
+                              </button>
+                          )}
                       </div>
                       <div className="text-right flex flex-col items-end">
-                          <span className={`text-2xl font-mono font-black ${getChangeColor(selectedTicker.change)}`}>{selectedTicker.price?.toFixed(2)}</span>
-                          <span className={`text-xs font-mono font-bold mt-0.5 ${getChangeColor(selectedTicker.change)}`}>{selectedTicker.change ? (selectedTicker.change > 0 ? '+' : '') + selectedTicker.change.toFixed(2) + '%' : '0.00%'}</span>
+                          <span className={`text-2xl font-mono font-black ${getChangeColor(selectedTicker.change)}`}>{selectedTicker.price?.toFixed(2) || '---'}</span>
+                          <span className={`text-xs font-mono font-bold mt-0.5 ${getChangeColor(selectedTicker.change)}`}>{selectedTicker.change ? (selectedTicker.change > 0 ? '+' : '') + selectedTicker.change.toFixed(2) + '%' : '---'}</span>
                       </div>
                     </div>
 
@@ -1244,7 +1270,7 @@ export default function FinAgent() {
                      </div>
                   </div>
                 ) : (
-                   // 🌟 修复：主工作台中控台对话框回归！
+                   // 主工作台中控台对话框
                    <div className="h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
                       <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-700 w-full max-w-3xl px-8">
                          
@@ -1260,7 +1286,7 @@ export default function FinAgent() {
                              <div className="text-xs font-mono font-bold tracking-[0.2em] text-slate-400 uppercase"><span>{t.system_ready}</span></div>
                          </div>
                          
-                         {/* 🌟 巨大中心化对话框 */}
+                         {/* 巨大中心化对话框 */}
                          <div className="w-full relative z-50">
                              <div className="relative flex items-center gap-4 bg-white border border-slate-300 rounded-2xl p-2 pl-6 shadow-xl focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
                                  <div className="text-indigo-500 font-mono text-lg animate-pulse font-bold"><span>{'>'}</span></div>
@@ -1272,7 +1298,7 @@ export default function FinAgent() {
                                      onKeyDown={(e) => {
                                          if (e.key === 'Enter' && globalChatInput.trim()) {
                                              setIsGlobalChatActive(true);
-                                             setTimeout(handleGlobalChatSend, 0); // 利用异步确保状态切换完毕后再发请求
+                                             setTimeout(handleGlobalChatSend, 0); // 异步确保状态切换完毕后再发请求
                                          }
                                      }} 
                                  />

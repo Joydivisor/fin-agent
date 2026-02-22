@@ -1,115 +1,133 @@
 import { NextResponse } from 'next/server';
 
-// 🌟 核心升级：超级本地极速缓存字典 (专注覆盖期货、外汇、指数与A股俗称)
-// 提示：普通的股票如“中国平安”，即使不写在这里，底层的在线 API 也能自动搜出来！
-const ASSET_DICTIONARY: Record<string, { symbol: string, name: string }> = {
-    // --- 贵金属 & 大宗商品 (期货) ---
-    '黄金': { symbol: 'GC=F', name: 'Gold (黄金期货主连)' },
-    '白银': { symbol: 'SI=F', name: 'Silver (白银期货主连)' },
-    '原油': { symbol: 'CL=F', name: 'Crude Oil (WTI原油)' },
-    '布伦特原油': { symbol: 'BZ=F', name: 'Brent Crude (布伦特原油)' },
-    '铜': { symbol: 'HG=F', name: 'Copper (铜期货)' },
-    '天然气': { symbol: 'NG=F', name: 'Natural Gas (天然气)' },
-    '玉米': { symbol: 'ZC=F', name: 'Corn (玉米)' },
-    '大豆': { symbol: 'ZS=F', name: 'Soybean (大豆)' },
-    '小麦': { symbol: 'ZW=F', name: 'Wheat (小麦)' },
+// 🌟 强行告诉 Vercel：允许这个函数运行最长的时间，防止大模型思考太久被掐断线
+export const maxDuration = 10; 
 
-    // --- 全球核心宏观指数 ---
-    '标普': { symbol: '^GSPC', name: 'S&P 500 (标普500指数)' },
-    '标普500': { symbol: '^GSPC', name: 'S&P 500 (标普500指数)' },
-    '纳指': { symbol: '^IXIC', name: 'NASDAQ (纳斯达克综合指数)' },
-    '纳斯达克': { symbol: '^IXIC', name: 'NASDAQ (纳斯达克综合指数)' },
-    '道指': { symbol: '^DJI', name: 'Dow Jones (道琼斯工业指数)' },
-    '罗素2000': { symbol: '^RUT', name: 'Russell 2000 (罗素2000小盘股)' },
-    '恐慌指数': { symbol: '^VIX', name: 'VIX (CBOE恐慌指数)' },
-    '恒指': { symbol: '^HSI', name: 'Hang Seng (恒生指数)' },
-    '恒生科技': { symbol: '^HSTECH', name: 'Hang Seng Tech (恒生科技指数)' },
-    '日经': { symbol: '^N225', name: 'Nikkei 225 (日经225指数)' },
-    '上证': { symbol: '000001.SS', name: 'SSE Composite (上证指数)' },
-    '深证': { symbol: '399001.SZ', name: 'SZSE Component (深证成指)' },
-    '创业板': { symbol: '399006.SZ', name: 'ChiNext (创业板指)' },
-    '沪深300': { symbol: '000300.SS', name: 'CSI 300 (沪深300指数)' },
-    '科创50': { symbol: '399808.SS', name: 'STAR 50 (科创50指数)' },
-
-    // --- 核心外汇汇率 ---
-    '美元人民币': { symbol: 'CNY=X', name: 'USD/CNY (美元兑人民币)' },
-    '离岸人民币': { symbol: 'CNH=X', name: 'USD/CNH (美元兑离岸人民币)' },
-    '欧元美元': { symbol: 'EURUSD=X', name: 'EUR/USD (欧元兑美元)' },
-    '美元日元': { symbol: 'JPY=X', name: 'USD/JPY (美元兑日元)' },
-    '英镑美元': { symbol: 'GBPUSD=X', name: 'GBP/USD (英镑兑美元)' },
-    '美元指数': { symbol: 'DX-Y.NYB', name: 'U.S. Dollar Index (美元指数)' },
-
-    // --- 顶级加密货币 ---
-    '比特币': { symbol: 'BTC-USD', name: 'Bitcoin (比特币)' },
-    '以太坊': { symbol: 'ETH-USD', name: 'Ethereum (以太坊)' },
-    '狗狗币': { symbol: 'DOGE-USD', name: 'Dogecoin (狗狗币)' },
-    '索拉纳': { symbol: 'SOL-USD', name: 'Solana (SOL)' },
-
-    // --- 极高频中文俗称映射 (兜底) ---
-    '腾讯': { symbol: '0700.HK', name: 'Tencent (腾讯控股)' },
-    '阿里': { symbol: 'BABA', name: 'Alibaba (阿里巴巴)' },
-    '拼多多': { symbol: 'PDD', name: 'Pinduoduo (拼多多)' },
-    '网易': { symbol: 'NTES', name: 'NetEase (网易)' },
-    '苹果': { symbol: 'AAPL', name: 'Apple (苹果)' },
-    '英伟达': { symbol: 'NVDA', name: 'NVIDIA (英伟达)' },
-    '微软': { symbol: 'MSFT', name: 'Microsoft (微软)' },
-    '特斯拉': { symbol: 'TSLA', name: 'Tesla (特斯拉)' },
-    '茅台': { symbol: '600519.SS', name: 'Kweichow Moutai (贵州茅台)' },
-    '宁王': { symbol: '300750.SZ', name: 'CATL (宁德时代)' },
-    '比亚迪': { symbol: '002594.SZ', name: 'BYD (比亚迪)' }
-};
-
-export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const q = searchParams.get('q');
-    
-    if (!q) return NextResponse.json([]);
-
-    let results: any[] = [];
-    const lowerQ = q.toLowerCase();
-
-    // 🌟 第一层拦截：秒级匹配本地极速字典 (支持模糊搜索，如输入"原油"会匹配"布伦特原油")
-    for (const key in ASSET_DICTIONARY) {
-        if (key.includes(lowerQ) || lowerQ.includes(key)) {
-            results.push(ASSET_DICTIONARY[key]);
-        }
-    }
-
-    // 🌟 第二层拦截：A股代码智能推断 (全自动补全沪深后缀)
-    if (/^\d{6}$/.test(lowerQ)) {
-        if (lowerQ.startsWith('6')) {
-            results.push({ symbol: `${lowerQ}.SS`, name: 'Shanghai A-Share (沪市 A 股)' });
-        } else if (lowerQ.startsWith('0') || lowerQ.startsWith('3')) {
-            results.push({ symbol: `${lowerQ}.SZ`, name: 'Shenzhen A-Share (深市 A 股)' });
-        }
-    }
-
-    // 🌟 第三层拦截：雅虎金融在线数据库兜底 (处理字典外的所有几万只普通股票)
+export async function POST(req: Request) {
     try {
-        const yfRes = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=6`, {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        
-        if (yfRes.ok) {
-            const data = await yfRes.json();
-            if (data.quotes && data.quotes.length > 0) {
-                const yfResults = data.quotes
-                    .filter((quote: any) => quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF') // 过滤掉无关的垃圾结果
-                    .map((quote: any) => ({
-                        symbol: quote.symbol,
-                        name: quote.shortname || quote.longname || quote.symbol
-                    }));
-                // 将在线结果追加到字典结果之后
-                results = [...results, ...yfResults];
-            }
+        const body = await req.json();
+        const { message, history = [], context = {}, mode = 'chat', provider = 'zhipu', userProfile = '' } = body;
+
+        // 获取真实的当前时间（东八区北京时间）作为时间锚点
+        const currentRealTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+
+        let systemPrompt = `你是一个名为 FIN-AGENT 的多模态 AI 金融终端核心。
+你的语气应该极其专业、冰冷、精准，像一个华尔街的高级量化分析师。
+【重要系统时间注入】：当前真实世界的系统时间是 ${currentRealTime}。请在所有的分析、预测和判断中，严格以此时间为基准！绝不能说错当前年份或日期！
+`;
+
+        if (userProfile) {
+            systemPrompt += `\n【用户专属身份档案】：\n${userProfile}\n请在回答时迎合该用户的投资风格和偏好。`;
         }
-    } catch (e) {
-        console.error("Search API Error:", e);
+
+        if (mode === 'stock_chat' && context.symbol) {
+            systemPrompt += `\n【当前上下文】：用户正在查看 ${context.symbol}，当前价格为 ${context.price}。请围绕该标的进行深度解答。`;
+        } else if (mode === 'tactical' && context.news) {
+            systemPrompt += `\n【任务】：用户传入了一篇新闻情报，请给出极具战术指导意义的机构级盘面推演。新闻标题：${context.news.title}`;
+        } else if (mode === 'weekly_report') {
+            systemPrompt += `\n【任务】：生成本周投资周报。用户的自选股列表为：${context.watchlist}。请结合本周全球宏观经济数据，给出下一周的建仓和避险建议。`;
+        }
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...history.map((m: any) => ({ role: m.role, content: m.content })),
+            { role: 'user', content: message }
+        ];
+
+        let apiUrl = '';
+        let apiKey = '';
+        let model = '';
+
+        if (provider === 'deepseek') {
+            apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+            apiKey = process.env.DEEPSEEK_API_KEY || '';
+            model = 'deepseek-reasoner'; // 使用 R1 推理模型
+        } else {
+            apiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+            apiKey = process.env.ZHIPU_API_KEY || '';
+            model = 'glm-4-plus'; // 使用智谱最新模型
+        }
+
+        if (!apiKey) {
+            throw new Error(`系统未检测到 ${provider.toUpperCase()}_API_KEY，请在 Vercel 环境变量中配置。`);
+        }
+
+        const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: messages,
+                stream: true,
+                // 🌟 核心修复 2：将大模型允许输出的最大字数拉满，防止中途断气！
+                max_tokens: 8192, 
+                temperature: 0.6
+            })
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`API 请求失败: ${res.status} ${errorText}`);
+        }
+
+        // 极简且安全的流式转发
+        const stream = new ReadableStream({
+            async start(controller) {
+                const reader = res.body?.getReader();
+                if (!reader) {
+                    controller.close();
+                    return;
+                }
+                const decoder = new TextDecoder();
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                        
+                        for (const line of lines) {
+                            if (line === 'data: [DONE]') continue;
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const parsed = JSON.parse(line.slice(6));
+                                    const content = parsed.choices[0]?.delta?.content || '';
+                                    const reasoning = parsed.choices[0]?.delta?.reasoning_content || '';
+                                    
+                                    // 完美兼容深度思考标签
+                                    if (reasoning) {
+                                        controller.enqueue(new TextEncoder().encode(`> **🧠 深度思考中...**\n${reasoning}\n\n---\n\n`));
+                                    }
+                                    if (content) {
+                                        controller.enqueue(new TextEncoder().encode(content));
+                                    }
+                                } catch (e) {
+                                    // 忽略解析失败的脏数据块
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    controller.close();
+                    reader.releaseLock();
+                }
+            }
+        });
+
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+            }
+        });
+
+    } catch (error: any) {
+        console.error("Agent Error:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    // 🌟 结果清洗：去重，防止字典和雅虎搜出重复的代码
-    const uniqueResults = Array.from(new Map(results.map(item => [item.symbol, item])).values());
-
-    // 限制最多返回 8 条提示，保持 UI 优雅
-    return NextResponse.json(uniqueResults.slice(0, 8));
 }
