@@ -907,7 +907,7 @@ export default function FinAgent() {
              className="cursor-pointer bg-slate-50 border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 text-slate-500 p-2.5 rounded-xl transition-all shadow-sm group relative flex items-center justify-center"
           >
              <LayoutDashboard size={16} />
-             <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-slate-800 border border-slate-700 text-white text-[11px] font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-50 shadow-xl transition-opacity">
+             <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-white text-[11px] font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-[60] shadow-xl transition-opacity">
                 <span>返回工作台主页</span>
              </div>
           </div>
