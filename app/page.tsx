@@ -265,7 +265,6 @@ export default function FinAgent() {
           signal: abortControllerRef.current.signal
       });
       
-      // 🌟 核心修复 1：更精准的报错捕获，不再只是干巴巴的 API Connection Failed
       if (!res.ok) {
           let errorMsg = `API Connection Failed (${res.status})`;
           try {
@@ -343,12 +342,18 @@ export default function FinAgent() {
       }, (text) => setWeeklyReport(text), () => setIsGeneratingReport(false));
   };
 
+  // 🌟 核心功能 2：将具体聊天内容（messages）完整封存进历史档案中
   const archiveConversation = (messages: ChatMessage[], type: string) => {
       if (messages.length === 0 || !userAccount?.email) return;
       const email = userAccount.email;
       const firstUserMsg = messages.find(m => m.role === 'user')?.content || 'Unknown Topic';
       const cleanTitle = firstUserMsg.slice(0, 35) + (firstUserMsg.length > 35 ? '...' : '');
-      const newArchive = { id: Date.now(), date: new Date().toLocaleDateString(), title: `[${type}] ${cleanTitle}` };
+      const newArchive = { 
+          id: Date.now(), 
+          date: new Date().toLocaleDateString(), 
+          title: `[${type}] ${cleanTitle}`,
+          messages: messages // 将对话内容封存
+      };
       const updatedArchives = [newArchive, ...chatArchives].slice(0, 20);
       setChatArchives(updatedArchives);
       localStorage.setItem(`fin_agent_archives_${email}`, JSON.stringify(updatedArchives));
@@ -359,10 +364,24 @@ export default function FinAgent() {
       setGlobalChatMessages([]); 
       if (userAccount?.email) localStorage.removeItem(`fin_agent_global_chat_${userAccount.email}`); 
   };
+  
   const handleArchiveStockChat = () => { 
       archiveConversation(stockChatMessages, selectedTicker?.symbol || 'Stock'); 
       setStockChatMessages([]); 
   };
+
+  // 🌟 核心功能 2：复活历史对话的函数
+  const resumeArchive = (arch: any) => {
+      if (arch.messages && arch.messages.length > 0) {
+          setGlobalChatMessages(arch.messages);
+          setIsGlobalChatActive(true);
+          setActiveNavIndex(0); // 切回主工作台
+          setSelectedTicker(null); // 清理当前选中的股票，露出中间的全局对话框
+      } else {
+          alert('该记录属于旧版格式，无法恢复完整对话。');
+      }
+  };
+
   const deleteArchive = (id: number) => { 
       const updated = chatArchives.filter(a => a.id !== id); 
       setChatArchives(updated); 
@@ -560,7 +579,6 @@ export default function FinAgent() {
 
   const performSearch = async () => { if (!searchQuery) return; setIsSearching(true); try { const res = await fetch(`/api/search?q=${searchQuery}`); setSearchResults(await res.json()); } catch (e) { setSearchResults([]); } finally { setIsSearching(false); } };
   
-  // 🌟 核心修复 2：分离“预览”和“加入自选”逻辑
   const handleViewFromSearch = (res: any) => {
       setSelectedTicker({ symbol: res.symbol, name: res.name });
       setTimeRange('1D');
@@ -576,7 +594,6 @@ export default function FinAgent() {
           setWatchlist(newList); 
           if (userAccount?.email) localStorage.setItem(`fin_agent_watchlist_${userAccount.email}`, JSON.stringify(newList)); 
       } 
-      // 加完之后不跳走，留在原地看
   };
   
   const removeTicker = (symbol: string) => { 
@@ -1016,7 +1033,6 @@ export default function FinAgent() {
                               <span>{selectedTicker.symbol}</span> 
                               <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-semibold border border-slate-200">{selectedTicker.name}</span>
                           </h1>
-                          {/* 🌟 核心功能 2：加入自选按钮，如果不在自选里才显示 */}
                           {!watchlist?.some(w => w.symbol === selectedTicker.symbol) && (
                               <button 
                                   onClick={() => addToWatchlist(selectedTicker.symbol)}
@@ -1050,6 +1066,16 @@ export default function FinAgent() {
                                            <button key={r} onClick={() => setTimeRange(r)} className={`text-[10px] font-bold px-3.5 py-1.5 rounded-lg transition-all ${timeRange === r ? 'bg-white text-indigo-600 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}><span>{r}</span></button>
                                        ))}
                                    </div>
+                                   
+                                   {/* 🌟 核心修复 3：休市期/无数据的优雅占位符 */}
+                                   {(!stockDetail.chart || stockDetail.chart.length <= 1) && (
+                                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-20 text-slate-400">
+                                           <Activity size={32} className="mb-3 opacity-50" />
+                                           <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Market Closed / No Data</span>
+                                           <span className="text-[10px] mt-1.5 text-slate-400">当前周期暂无交易数据（如遇法定节假日或周末休市）</span>
+                                       </div>
+                                   )}
+
                                    <ResponsiveContainer width="100%" height="100%">
                                      <AreaChart data={stockDetail.chart} margin={{top:50,right:10,left:10,bottom:0}}>
                                        <defs>
@@ -1131,6 +1157,14 @@ export default function FinAgent() {
                                             <div className="flex items-center gap-1.5 font-semibold text-slate-600"><div className="w-4 h-1 bg-slate-300 rounded-full"/> <span>{t.cumulative}</span></div>
                                         </div>
                                     </div>
+                                    
+                                    {/* 休市占位符 */}
+                                    {(!stockDetail.chart || stockDetail.chart.length <= 1) && (
+                                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-20 text-slate-400">
+                                           <span className="text-xs font-bold uppercase tracking-widest text-slate-500">No Flow Data</span>
+                                       </div>
+                                    )}
+
                                     <div className="flex-1 pointer-events-none">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <ComposedChart data={stockDetail.chart} margin={{top:5, right:0, left:-20, bottom:0}}>
@@ -1493,15 +1527,20 @@ export default function FinAgent() {
 
                        <section className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-inner">
                            <div className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3"><div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100"><Archive size={18} className="text-emerald-500"/></div> <span>Past Conversations</span></div>
-                           <div className="text-xs text-slate-500 mb-6 font-medium"><span>每当您在工作台点击“归档并清空”按钮时，对话的核心摘要将保存于此，作为 AI 后续与您交流的底层记忆库。</span></div>
+                           <div className="text-xs text-slate-500 mb-6 font-medium"><span>点击卡片即可在主控制台恢复当时的对话上下文。</span></div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                {chatArchives.map(arch => (
-                                   <div key={arch.id} className="p-5 bg-white border border-slate-200 hover:border-emerald-200 hover:shadow-md rounded-2xl shadow-sm flex justify-between items-start group transition-all">
+                                   // 🌟 核心修复 2：支持点击还原对话
+                                   <div key={arch.id} 
+                                        onClick={() => resumeArchive(arch)}
+                                        className="p-5 bg-white border border-slate-200 hover:border-emerald-200 hover:shadow-md rounded-2xl shadow-sm flex justify-between items-start group transition-all cursor-pointer"
+                                   >
                                        <div className="w-[85%]">
                                            <div className="text-[10px] text-slate-400 font-mono font-bold mb-1.5"><span>{arch.date}</span></div>
                                            <div className="text-sm font-bold text-slate-700 leading-relaxed truncate" title={arch.title}><span>{arch.title}</span></div>
                                        </div>
-                                       <button onClick={()=>deleteArchive(arch.id)} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-50 p-2 rounded-lg"><Trash2 size={16}/></button>
+                                       {/* 阻止事件冒泡，防止点删除时触发跳转 */}
+                                       <button onClick={(e)=>{ e.stopPropagation(); deleteArchive(arch.id); }} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-50 p-2 rounded-lg"><Trash2 size={16}/></button>
                                    </div>
                                ))}
                                {chatArchives.length === 0 ? (
