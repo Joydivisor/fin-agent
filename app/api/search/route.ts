@@ -36,61 +36,65 @@ export async function GET(req: Request) {
     let results: any[] = [];
     const lowerQ = q.toLowerCase();
 
-    // 1. 本地字典匹配
+    // 1. 本地极速字典匹配
     for (const key in ASSET_DICTIONARY) {
         if (key.includes(lowerQ) || lowerQ.includes(key)) {
             results.push(ASSET_DICTIONARY[key]);
         }
     }
 
-    // 🌟 2. 核心修复：正确解析腾讯财经的特殊文本格式
+    // 🌟 2. 核心修复：并发调用新浪财经 + 腾讯财经 + 雅虎金融 (解决所有中文及拼音盲区)
     try {
-        const txRes = await fetch(`https://smartbox.tencent.com/get/?v=2&q=${encodeURIComponent(q)}&t=all`, {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        
-        if (txRes.ok) {
-            const text = await txRes.text();
-            // 腾讯返回格式: v_hint="sh~600418~江淮汽车~jhqc~...^sz~000001~平安银行~payh~...";
+        const [sinaRes, txRes, yfRes] = await Promise.allSettled([
+            // 新浪财经对A股拼音缩写(jhqc)支持最好
+            fetch(`https://suggest3.sinajs.cn/suggest/type=11,12,31,41,71&key=${encodeURIComponent(q)}`, { headers: { 'User-Agent': 'Mozilla/5.0' } }),
+            fetch(`https://smartbox.tencent.com/get/?v=2&q=${encodeURIComponent(q)}&t=all`, { headers: { 'User-Agent': 'Mozilla/5.0' } }),
+            fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=4`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+        ]);
+
+        // 解析新浪数据
+        if (sinaRes.status === 'fulfilled' && sinaRes.value.ok) {
+            const text = await sinaRes.value.text();
+            const match = text.match(/="([^"]*)"/);
+            if (match && match[1]) {
+                const items = match[1].split(';');
+                items.forEach(item => {
+                    const parts = item.split(',');
+                    if (parts.length >= 4) {
+                        const marketCode = parts[0]; // 例如 sh600418
+                        const name = parts[4] || parts[1];
+                        if (marketCode.startsWith('sh')) results.push({ symbol: `${marketCode.replace('sh', '')}.SS`, name: `${name} (沪股)` });
+                        else if (marketCode.startsWith('sz')) results.push({ symbol: `${marketCode.replace('sz', '')}.SZ`, name: `${name} (深股)` });
+                        else if (marketCode.startsWith('hk')) results.push({ symbol: `${marketCode.replace('hk', '')}.HK`, name: `${name} (港股)` });
+                    }
+                });
+            }
+        }
+
+        // 解析腾讯数据
+        if (txRes.status === 'fulfilled' && txRes.value.ok) {
+            const text = await txRes.value.text();
             const match = text.match(/v_hint="([^"]*)"/);
             if (match && match[1]) {
                 const items = match[1].split('^');
-                const parsedTencentResults = items.map(item => {
+                items.forEach(item => {
                     const parts = item.split('~');
                     if (parts.length >= 3) {
                         const market = parts[0];
                         const code = parts[1];
                         const name = parts[2];
-                        let suffix = '';
-                        let marketName = '';
-                        
-                        if (market === 'sh') { suffix = '.SS'; marketName = '沪股'; }
-                        else if (market === 'sz') { suffix = '.SZ'; marketName = '深股'; }
-                        else if (market === 'hk') { suffix = '.HK'; marketName = '港股'; }
-                        else if (market === 'us') { suffix = ''; marketName = '美股'; }
-                        
-                        if (marketName) {
-                            return { symbol: `${code}${suffix}`, name: `${name} (${marketName})` };
-                        }
+                        if (market === 'sh') results.push({ symbol: `${code}.SS`, name: `${name} (沪股)` });
+                        else if (market === 'sz') results.push({ symbol: `${code}.SZ`, name: `${name} (深股)` });
+                        else if (market === 'hk') results.push({ symbol: `${code}.HK`, name: `${name} (港股)` });
+                        else if (market === 'us') results.push({ symbol: code, name: `${name} (美股)` });
                     }
-                    return null;
-                }).filter(Boolean);
-                
-                results = [...results, ...parsedTencentResults];
+                });
             }
         }
-    } catch (e) {
-        console.error("Tencent Search API Error:", e);
-    }
 
-    // 3. 雅虎兜底
-    try {
-        const yfRes = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=6`, {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        
-        if (yfRes.ok) {
-            const data = await yfRes.json();
+        // 解析雅虎数据 (兜底美股)
+        if (yfRes.status === 'fulfilled' && yfRes.value.ok) {
+            const data = await yfRes.value.json();
             if (data.quotes && data.quotes.length > 0) {
                 const yfResults = data.quotes
                     .filter((quote: any) => quote.quoteType === 'EQUITY' || quote.quoteType === 'ETF')
@@ -102,9 +106,10 @@ export async function GET(req: Request) {
             }
         }
     } catch (e) {
-        console.error("Search API Error:", e);
+        console.error("Mixed Search API Error:", e);
     }
 
+    // 去重，确保下拉列表干净
     const uniqueResults = Array.from(new Map(results.map(item => [item.symbol, item])).values());
     return NextResponse.json(uniqueResults.slice(0, 8));
 }

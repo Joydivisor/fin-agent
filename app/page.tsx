@@ -9,7 +9,7 @@ import {
   X, Users, Building2, Globe2, 
   Flame, CloudLightning, ChevronDown, ShieldAlert, Book, LayoutDashboard,
   Maximize2, Minimize2, ZoomIn, BarChart3, Archive, Mail, Lock, LogIn, CheckCircle2,
-  Square, Calendar, FileText, ArrowRight, Settings, LogOut, Zap
+  Square, Calendar, FileText, ArrowRight, Settings, LogOut, Zap, Rocket
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
@@ -93,7 +93,6 @@ const TIME_RANGES = ['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'All'];
 type EngineType = 'gemini' | 'deepseek' | 'zhipu';
 type ChatMessage = { role: 'user' | 'assistant', content: string, timestamp: number };
 
-// 安全解析器
 const MessageFormatter = ({ content, isStreaming }: { content: string, isStreaming?: boolean }) => {
   const safeContent = content || '';
   const thinkStartIdx = safeContent.indexOf('> **🧠 深度思考中...**');
@@ -163,6 +162,9 @@ export default function FinAgent() {
   const [isMounted, setIsMounted] = useState(false);
   const [showLanding, setShowLanding] = useState(true);
 
+  // 🌟 新增状态：控制新手引导弹窗
+  const [showTutorial, setShowTutorial] = useState(false);
+
   const [watchlist, setWatchlist] = useState<{symbol: string, pinned: boolean}[] | null>(null);
   const [marketData, setMarketData] = useState<any[]>([]);
   const [selectedTicker, setSelectedTicker] = useState<any>(null);
@@ -209,7 +211,6 @@ export default function FinAgent() {
   const [isStockChatStreaming, setIsStockChatStreaming] = useState(false);
   const [isStockChatExpanded, setIsStockChatExpanded] = useState(false);
 
-  // 🌟 新增状态：思考模式开关 (默认开启)
   const [isThinkingMode, setIsThinkingMode] = useState(true);
 
   const [tacticalNews, setTacticalNews] = useState<any>(null);
@@ -260,7 +261,6 @@ export default function FinAgent() {
   ) => {
     try {
       abortControllerRef.current = new AbortController();
-      // 🌟 将用户的思考模式选择传给后端
       const payload = { ...params, provider: activeEngine, userProfile, chatArchives, useThinking: isThinkingMode }; 
       const res = await fetch('/api/agent', { 
           method: 'POST', 
@@ -418,8 +418,15 @@ export default function FinAgent() {
     setIsMounted(true); 
     const savedUser = localStorage.getItem('fin_agent_user');
     if (savedUser) {
-        setUserAccount(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        setUserAccount(parsedUser);
         setShowLanding(false); 
+        
+        // 🌟 检查该用户是否已经看过新手教程
+        const tutorialDone = localStorage.getItem(`tutorial_done_${parsedUser.email}`);
+        if (!tutorialDone) {
+            setShowTutorial(true);
+        }
     }
     setCurrentTime(new Date().toISOString());
     const timer = setInterval(() => setCurrentTime(new Date().toISOString()), 1000);
@@ -643,6 +650,13 @@ export default function FinAgent() {
                   const newUser = { email: authEmail };
                   setUserAccount(newUser);
                   localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
+                  
+                  // 登录后检查是否看过教程
+                  const tutorialDone = localStorage.getItem(`tutorial_done_${authEmail}`);
+                  if (!tutorialDone) {
+                      setShowTutorial(true);
+                  }
+                  
                   setAuthEmail('');
                   setAuthPassword('');
                   setShowAuthModal(false);
@@ -683,6 +697,10 @@ export default function FinAgent() {
               const newUser = { email: authEmail };
               setUserAccount(newUser);
               localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
+              
+              // 刚注册的新用户强制看教程
+              setShowTutorial(true);
+              
               setAuthEmail('');
               setUserInputCode('');
               setAuthPassword('');
@@ -694,6 +712,66 @@ export default function FinAgent() {
       } catch (e) {
           alert("验证服务请求失败，请检查网络环境。");
       }
+  };
+
+  // 🌟 新增：新兵训练营 (Onboarding Tutorial) 渲染器
+  const renderTutorialModal = () => {
+      if (!showTutorial || !userAccount) return null;
+      return (
+          <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative border border-slate-200" onClick={e => e.stopPropagation()}>
+                  <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
+                      <div className="absolute -inset-10 bg-indigo-500/50 rounded-full blur-3xl animate-pulse" />
+                      <Rocket size={48} className="text-white mx-auto mb-4 relative z-10" />
+                      <h2 className="text-3xl font-black text-white tracking-tight relative z-10">Welcome to FIN-AGENT</h2>
+                      <p className="text-indigo-100 font-medium mt-2 relative z-10">您的次世代 AI 量化投资终端已就绪。请花 30 秒了解核心武器：</p>
+                  </div>
+                  
+                  <div className="p-8 space-y-6 bg-slate-50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
+                              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl h-fit border border-indigo-100"><BrainCircuit size={20}/></div>
+                              <div>
+                                  <h3 className="font-black text-slate-800 mb-1 text-sm">思考模式 (Deep Thinking)</h3>
+                                  <p className="text-xs text-slate-500 leading-relaxed">对话框左侧的 🧠 按钮可切换模型心智。开启时，AI 将展示几千字的底层逻辑推演；切换为 ⚡️ 时，模型将拒绝思考，极速输出结论。</p>
+                              </div>
+                          </div>
+                          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
+                              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl h-fit border border-emerald-100"><Archive size={20}/></div>
+                              <div>
+                                  <h3 className="font-black text-slate-800 mb-1 text-sm">对话穿梭 (Time Travel)</h3>
+                                  <p className="text-xs text-slate-500 leading-relaxed">在控制台聊完后，点击右上角的“归档并清空”。被归档的对话会保存在【记忆库】中，点击任意历史卡片，即可瞬间恢复当时的聊天上下文。</p>
+                              </div>
+                          </div>
+                          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
+                              <div className="p-2 bg-rose-50 text-rose-600 rounded-xl h-fit border border-rose-100"><Search size={20}/></div>
+                              <div>
+                                  <h3 className="font-black text-slate-800 mb-1 text-sm">智能检索与预览 (Smart Search)</h3>
+                                  <p className="text-xs text-slate-500 leading-relaxed">支持 A股中文、拼音缩写及雅虎代码。点击搜索结果后会进入【预览模式】，确认是你想要的标的后，点击名称旁边的“+ 加入自选”即可永久跟踪。</p>
+                              </div>
+                          </div>
+                          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
+                              <div className="p-2 bg-amber-50 text-amber-600 rounded-xl h-fit border border-amber-100"><Sparkles size={20}/></div>
+                              <div>
+                                  <h3 className="font-black text-slate-800 mb-1 text-sm">无处不在的悬浮 AI</h3>
+                                  <p className="text-xs text-slate-500 leading-relaxed">在右侧新闻流点击 🌟 图标，或在股票详情页点击任意机构持仓饼图，都可以瞬间唤醒悬浮 AI，实现“指哪打哪”的穿透式追问。</p>
+                              </div>
+                          </div>
+                      </div>
+                      
+                      <button 
+                          onClick={() => {
+                              setShowTutorial(false);
+                              localStorage.setItem(`tutorial_done_${userAccount.email}`, 'true');
+                          }} 
+                          className="w-full py-4 bg-indigo-600 text-white font-black text-lg rounded-2xl hover:bg-indigo-500 transition-all shadow-xl hover:shadow-indigo-500/30 flex items-center justify-center gap-2"
+                      >
+                          <span>我已了解，立即进入系统</span> <ArrowRight size={20} />
+                      </button>
+                  </div>
+              </div>
+          </div>
+      );
   };
 
   const renderAuthModal = () => {
@@ -846,6 +924,9 @@ export default function FinAgent() {
   // ==========================================
   return (
     <div className="h-screen w-full flex flex-col font-sans overflow-hidden selection:bg-indigo-500/20 bg-slate-50 text-slate-800 relative">
+
+      {/* 🌟 渲染新兵训练营 */}
+      {renderTutorialModal()}
 
       {/* --- Top Header --- */}
       <div className="h-10 bg-white border-b border-slate-200 flex items-center px-4 justify-between shrink-0 z-30 shadow-sm relative">
@@ -1229,7 +1310,6 @@ export default function FinAgent() {
                           </div>
                           <div className="p-5 bg-white border-t border-slate-200">
                               <div className="bg-slate-50 border border-slate-300 rounded-2xl p-2 pl-4 flex gap-3 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all shadow-sm items-center">
-                                  {/* 🌟 股票聊天：思考模式/极速模式 切换按钮 */}
                                   <button
                                       onClick={() => setIsThinkingMode(!isThinkingMode)}
                                       className={`p-1.5 rounded-lg flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
@@ -1302,7 +1382,6 @@ export default function FinAgent() {
                      </div>
                      <div className="p-6 bg-white border-t border-slate-200 shrink-0">
                         <div className="max-w-4xl mx-auto relative flex items-center gap-4 bg-slate-50 border border-slate-300 rounded-2xl p-2 pl-4 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all shadow-sm">
-                           {/* 🌟 全局聊天：思考模式/极速模式 切换按钮 */}
                            <button
                                onClick={() => setIsThinkingMode(!isThinkingMode)}
                                className={`p-2 rounded-xl flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
@@ -1340,7 +1419,6 @@ export default function FinAgent() {
                          {/* 巨大中心化对话框 */}
                          <div className="w-full relative z-50">
                              <div className="relative flex items-center gap-4 bg-white border border-slate-300 rounded-2xl p-2 pl-4 shadow-xl focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
-                                 {/* 🌟 核心中心聊天：思考模式/极速模式 切换按钮 */}
                                  <button
                                      onClick={() => setIsThinkingMode(!isThinkingMode)}
                                      className={`p-2.5 rounded-xl flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
@@ -1555,7 +1633,6 @@ export default function FinAgent() {
                            <div className="text-xs text-slate-500 mb-6 font-medium"><span>点击卡片即可在主控制台恢复当时的对话上下文。</span></div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                {chatArchives.map(arch => (
-                                   // 🌟 支持点击还原对话
                                    <div key={arch.id} 
                                         onClick={() => resumeArchive(arch)}
                                         className="p-5 bg-white border border-slate-200 hover:border-emerald-200 hover:shadow-md rounded-2xl shadow-sm flex justify-between items-start group transition-all cursor-pointer"
@@ -1654,9 +1731,10 @@ export default function FinAgent() {
                            <div className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3"><div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100"><Sparkles size={18} className="text-amber-500"/></div> <span>Agent Capabilities</span></div>
                            <div className="font-medium mb-6"><span>The Fin-Agent supports <b>Zhipu GLM-5</b> and <b>DeepSeek V3/R1</b>.</span></div>
                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               {/* 🌟 核心更新：加入心智切换模式的说明 */}
                                <li className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                                   <div className="font-black text-slate-900 mb-2 flex items-center gap-2"><BrainCircuit size={14} className="text-indigo-500"/> <span>Deep Thinking</span></div>
-                                   <div className="text-xs text-slate-500"><span>GLM-5 and R1 will automatically show their reasoning process before outputting the final answer. You can toggle this section!</span></div>
+                                   <div className="font-black text-slate-900 mb-2 flex items-center gap-2"><BrainCircuit size={14} className="text-indigo-500"/> <span>Dual-Engine Mode (双模心智)</span></div>
+                                   <div className="text-xs text-slate-500"><span>点击对话框左侧的 🧠 / ⚡️ 按钮即可实时切换模型心智。开启思考模式（R1内核）适合深度分析；开启极速模式（V3内核）适合快速问答。</span></div>
                                </li>
                                <li className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                    <div className="font-black text-slate-900 mb-2 flex items-center gap-2"><Activity size={14} className="text-rose-500"/> <span>Live Alerts</span></div>

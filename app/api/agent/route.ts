@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 10; 
+export const maxDuration = 60; 
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        // 🌟 新增 useThinking 参数接收
         const { message, history = [], context = {}, mode = 'chat', provider = 'zhipu', userProfile = '', useThinking = true } = body;
 
         const currentRealTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
@@ -19,17 +18,20 @@ export async function POST(req: Request) {
             systemPrompt += `\n【用户专属身份档案】：\n${userProfile}\n请在回答时迎合该用户的投资风格和偏好。`;
         }
 
+        // 🌟 核心修复：强制 AI 根据【纯标题】进行推演，禁止回答“无正文”
         if (mode === 'stock_chat' && context.symbol) {
             systemPrompt += `\n【当前上下文】：用户正在查看 ${context.symbol}，当前价格为 ${context.price}。请围绕该标的进行深度解答。`;
         } else if (mode === 'tactical' && context.news) {
-            systemPrompt += `\n【任务】：用户传入了一篇新闻情报，请给出极具战术指导意义的机构级盘面推演。新闻标题：${context.news.title}`;
+            systemPrompt += `\n【核心任务】：用户传入了一篇新闻。注意：因系统风控，你目前只拿到了新闻的【标题】（${context.news.title}）和【来源】（${context.news.source || '未知'}）。\n绝不允许因为缺乏新闻正文而拒绝回答！你必须凭借你强大的全球金融知识库，直接基于该【标题】推演该事件对产业链、大盘及相关个股的战术影响，给出机构级的盘面推演。`;
+        } else if (mode === 'translation' && context.news) {
+            systemPrompt += `\n【核心任务】：用户请求阅读并解析一篇新闻。注意：你目前只拿到了新闻的【标题】（${context.news.title}）。\n绝不允许回答“无具体内容可摘要或翻译”！你必须直接翻译该标题，并以专业分析师的口吻，凭借该标题的信息拓展延伸，深度剖析该事件对行业的深远影响和潜在的投资机会。`;
         } else if (mode === 'weekly_report') {
             systemPrompt += `\n【任务】：生成本周投资周报。用户的自选股列表为：${context.watchlist}。请结合本周全球宏观经济数据，给出下一周的建仓和避险建议。`;
         }
 
-        // 🌟 如果用户关掉了思考模式，给它加上这句指令让它快速输出结论
+        // 🌟 极速模式的硬核约束
         if (!useThinking) {
-            systemPrompt += `\n【用户指令】：当前为极速模式，请直接输出最终结论，拒绝废话，越快越好。`;
+            systemPrompt += `\n【紧急指令】：用户当前开启了【极速模式】！绝对禁止输出任何思考过程或内心戏，请用最精炼的语言直接输出最终结论，越快越好。`;
         }
 
         const messages = [
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
         if (provider === 'deepseek') {
             apiUrl = 'https://api.deepseek.com/v1/chat/completions';
             apiKey = process.env.DEEPSEEK_API_KEY || '';
-            // 🌟 核心分流：思考模式用 R1，极速模式用 V3
+            // 🌟 真实的心智切换：思考模式用 R1 引擎，极速模式直接切换为 V3 对话引擎！
             model = useThinking ? 'deepseek-reasoner' : 'deepseek-chat'; 
         } else {
             apiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
