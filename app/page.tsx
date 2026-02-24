@@ -481,7 +481,16 @@ export default function FinAgent() {
     return () => clearInterval(interval);
   }, [watchlist]);
   
-  useEffect(() => { if (selectedTicker) { setIsGlobalChatActive(false); setIsStockChatExpanded(false); fetchStockDetail(selectedTicker.symbol, timeRange); setActiveNavIndex(0); } }, [selectedTicker, timeRange]);
+  // 🌟 核心优化：避免无限循环，只依赖 symbol 和 timeRange
+  useEffect(() => { 
+      if (selectedTicker?.symbol) { 
+          setIsGlobalChatActive(false); 
+          setIsStockChatExpanded(false); 
+          fetchStockDetail(selectedTicker.symbol, timeRange); 
+          setActiveNavIndex(0); 
+      } 
+  }, [selectedTicker?.symbol, timeRange]);
+  
   useEffect(() => { setStockChatMessages([]); }, [selectedTicker?.symbol]);
   useEffect(() => { if (isFlowChartExpanded && stockDetail?.chart) setZoomState({ left: 0, right: stockDetail.chart.length - 1 }); }, [isFlowChartExpanded, stockDetail]);
   
@@ -586,12 +595,29 @@ export default function FinAgent() {
 
   const performSearch = async () => { if (!searchQuery) return; setIsSearching(true); try { const res = await fetch(`/api/search?q=${searchQuery}`); setSearchResults(await res.json()); } catch (e) { setSearchResults([]); } finally { setIsSearching(false); } };
   
-  const handleViewFromSearch = (res: any) => {
+  const handleViewFromSearch = async (res: any) => {
+      // 🌟 核心修复 1：先展示框架
       setSelectedTicker({ symbol: res.symbol, name: res.name });
       setTimeRange('1D');
       setSearchQuery('');
       setSearchResults([]);
       setActiveNavIndex(0); 
+
+      // 🌟 核心修复 1：利用 Micro-fetch 瞬间补齐右上角的价格
+      try {
+          const quoteRes = await fetch(`/api/market-data?symbols=${res.symbol}`);
+          if (quoteRes.ok) {
+              const data = await quoteRes.json();
+              if (data && data.length > 0) {
+                  setSelectedTicker({ 
+                      symbol: res.symbol, 
+                      name: res.name, 
+                      price: data[0].price, 
+                      change: data[0].change 
+                  });
+              }
+          }
+      } catch (e) {}
   };
 
   const addToWatchlist = (symbol: string) => { 
@@ -1149,7 +1175,7 @@ export default function FinAgent() {
                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-20 text-slate-400">
                                            <Activity size={32} className="mb-3 opacity-50" />
                                            <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Market Closed / No Data</span>
-                                           <span className="text-[10px] mt-1.5 text-slate-400">当前周期暂无交易数据（如遇法定节假日或周末休市）</span>
+                                           <span className="text-[10px] mt-1.5 text-slate-400">雅虎金融接口对该标的的日内分时(1D/5D)数据暂无收录</span>
                                        </div>
                                    )}
 
@@ -1161,7 +1187,13 @@ export default function FinAgent() {
                                        </defs>
                                        <XAxis dataKey="normalizedTime" axisLine={false} tickLine={false} tick={{fontSize:11, fill: axisColor, fontWeight: 500}} minTickGap={40} tickFormatter={formatXAxis} dy={10} />
                                        <YAxis domain={['auto','auto']} orientation="right" hide/>
-                                       <Tooltip contentStyle={{backgroundColor: '#ffffff', border: '1px solid #e2e8f0', color: '#0f172a', fontSize:'12px', borderRadius:'12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)'}} cursor={{stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray:'4 4'}} labelFormatter={formatXAxis}/>
+                                       {/* 🌟 核心修复 3：为悬浮提示框的价格强制保留 2 位小数 */}
+                                       <Tooltip 
+                                           contentStyle={{backgroundColor: '#ffffff', border: '1px solid #e2e8f0', color: '#0f172a', fontSize:'12px', borderRadius:'12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)'}} 
+                                           cursor={{stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray:'4 4'}} 
+                                           labelFormatter={formatXAxis}
+                                           formatter={(value: any) => [`${Number(value).toFixed(2)}`, 'Price']}
+                                       />
                                        <ReferenceLine y={stockDetail.prevClose} stroke={gridColor} strokeWidth={2} strokeDasharray="4 4"/>
                                        <Area type="monotone" dataKey="price" stroke={getChartColor()} fill={`url(#${getChartColor() === '#e11d48' ? "gradUp" : "gradDown"})`} strokeWidth={2.5} connectNulls={true}/>
                                      </AreaChart>
