@@ -9,7 +9,7 @@ import {
   X, Users, Building2, Globe2, 
   Flame, CloudLightning, ChevronDown, ShieldAlert, Book, LayoutDashboard,
   Maximize2, Minimize2, ZoomIn, BarChart3, Archive, Mail, Lock, LogIn, CheckCircle2,
-  Square, Calendar, FileText, ArrowRight, Settings, LogOut
+  Square, Calendar, FileText, ArrowRight, Settings, LogOut, Zap
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
@@ -209,6 +209,9 @@ export default function FinAgent() {
   const [isStockChatStreaming, setIsStockChatStreaming] = useState(false);
   const [isStockChatExpanded, setIsStockChatExpanded] = useState(false);
 
+  // 🌟 新增状态：思考模式开关 (默认开启)
+  const [isThinkingMode, setIsThinkingMode] = useState(true);
+
   const [tacticalNews, setTacticalNews] = useState<any>(null);
   const [tacticalReport, setTacticalReport] = useState<string>('');
   const [tacticalDeep, setTacticalDeep] = useState(false);
@@ -257,7 +260,8 @@ export default function FinAgent() {
   ) => {
     try {
       abortControllerRef.current = new AbortController();
-      const payload = { ...params, provider: activeEngine, userProfile, chatArchives }; 
+      // 🌟 将用户的思考模式选择传给后端
+      const payload = { ...params, provider: activeEngine, userProfile, chatArchives, useThinking: isThinkingMode }; 
       const res = await fetch('/api/agent', { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
@@ -342,7 +346,6 @@ export default function FinAgent() {
       }, (text) => setWeeklyReport(text), () => setIsGeneratingReport(false));
   };
 
-  // 🌟 核心功能 2：将具体聊天内容（messages）完整封存进历史档案中
   const archiveConversation = (messages: ChatMessage[], type: string) => {
       if (messages.length === 0 || !userAccount?.email) return;
       const email = userAccount.email;
@@ -352,7 +355,7 @@ export default function FinAgent() {
           id: Date.now(), 
           date: new Date().toLocaleDateString(), 
           title: `[${type}] ${cleanTitle}`,
-          messages: messages // 将对话内容封存
+          messages: messages 
       };
       const updatedArchives = [newArchive, ...chatArchives].slice(0, 20);
       setChatArchives(updatedArchives);
@@ -370,13 +373,12 @@ export default function FinAgent() {
       setStockChatMessages([]); 
   };
 
-  // 🌟 核心功能 2：复活历史对话的函数
   const resumeArchive = (arch: any) => {
       if (arch.messages && arch.messages.length > 0) {
           setGlobalChatMessages(arch.messages);
           setIsGlobalChatActive(true);
-          setActiveNavIndex(0); // 切回主工作台
-          setSelectedTicker(null); // 清理当前选中的股票，露出中间的全局对话框
+          setActiveNavIndex(0); 
+          setSelectedTicker(null); 
       } else {
           alert('该记录属于旧版格式，无法恢复完整对话。');
       }
@@ -584,7 +586,7 @@ export default function FinAgent() {
       setTimeRange('1D');
       setSearchQuery('');
       setSearchResults([]);
-      setActiveNavIndex(0); // 导航回主工作台
+      setActiveNavIndex(0); 
   };
 
   const addToWatchlist = (symbol: string) => { 
@@ -1067,7 +1069,6 @@ export default function FinAgent() {
                                        ))}
                                    </div>
                                    
-                                   {/* 🌟 核心修复 3：休市期/无数据的优雅占位符 */}
                                    {(!stockDetail.chart || stockDetail.chart.length <= 1) && (
                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-20 text-slate-400">
                                            <Activity size={32} className="mb-3 opacity-50" />
@@ -1158,7 +1159,6 @@ export default function FinAgent() {
                                         </div>
                                     </div>
                                     
-                                    {/* 休市占位符 */}
                                     {(!stockDetail.chart || stockDetail.chart.length <= 1) && (
                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-20 text-slate-400">
                                            <span className="text-xs font-bold uppercase tracking-widest text-slate-500">No Flow Data</span>
@@ -1228,19 +1228,28 @@ export default function FinAgent() {
                               <div ref={stockChatEndRef} />
                           </div>
                           <div className="p-5 bg-white border-t border-slate-200">
-                              <div className="bg-slate-50 border border-slate-300 rounded-2xl p-2 pl-4 flex gap-3 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all shadow-sm">
+                              <div className="bg-slate-50 border border-slate-300 rounded-2xl p-2 pl-4 flex gap-3 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all shadow-sm items-center">
+                                  {/* 🌟 股票聊天：思考模式/极速模式 切换按钮 */}
+                                  <button
+                                      onClick={() => setIsThinkingMode(!isThinkingMode)}
+                                      className={`p-1.5 rounded-lg flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
+                                      title={isThinkingMode ? "思考模式 (Deep Thinking)" : "快速模式 (Fast Mode)"}
+                                  >
+                                      {isThinkingMode ? <BrainCircuit size={16} /> : <Zap size={16} />}
+                                  </button>
+                                  
                                   <input 
                                       disabled={isStockChatStreaming} 
-                                      className="bg-transparent border-none outline-none text-sm text-slate-800 w-full font-sans placeholder:text-slate-400" 
+                                      className="bg-transparent border-none outline-none text-sm text-slate-800 w-full font-sans placeholder:text-slate-400 py-1" 
                                       placeholder={t.agent_placeholder} 
                                       value={stockChatInput} 
                                       onChange={(e) => setStockChatInput(e.target.value)} 
                                       onKeyDown={(e) => e.key === 'Enter' && handleStockChatSend()} 
                                   />
                                   {isStockChatStreaming ? (
-                                      <button onClick={handleStopGeneration} className="p-2.5 bg-rose-500 rounded-xl text-white hover:bg-rose-600 transition shadow-lg"><Square size={16} fill="currentColor" /></button>
+                                      <button onClick={handleStopGeneration} className="p-2.5 bg-rose-500 rounded-xl text-white hover:bg-rose-600 transition shadow-lg shrink-0"><Square size={16} fill="currentColor" /></button>
                                   ) : (
-                                      <button disabled={!stockChatInput.trim()} onClick={() => handleStockChatSend()} className="bg-indigo-600 text-white p-2.5 rounded-xl disabled:opacity-50 hover:bg-indigo-500 transition-colors shadow-md">
+                                      <button disabled={!stockChatInput.trim()} onClick={() => handleStockChatSend()} className="bg-indigo-600 text-white p-2.5 rounded-xl disabled:opacity-50 hover:bg-indigo-500 transition-colors shadow-md shrink-0">
                                           <Send size={16} />
                                       </button>
                                   )}
@@ -1292,13 +1301,21 @@ export default function FinAgent() {
                         <div ref={globalChatEndRef} />
                      </div>
                      <div className="p-6 bg-white border-t border-slate-200 shrink-0">
-                        <div className="max-w-4xl mx-auto relative flex items-center gap-4 bg-slate-50 border border-slate-300 rounded-2xl p-2 pl-5 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all shadow-sm">
-                           <div className="text-indigo-500 font-mono text-sm animate-pulse font-bold"><span>{'>'}</span></div>
-                           <input className="bg-transparent border-none outline-none text-base text-slate-800 w-full placeholder:text-slate-400 font-sans" placeholder={t.global_chat_placeholder} value={globalChatInput} onChange={(e) => setGlobalChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleGlobalChatSend()} autoFocus />
+                        <div className="max-w-4xl mx-auto relative flex items-center gap-4 bg-slate-50 border border-slate-300 rounded-2xl p-2 pl-4 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all shadow-sm">
+                           {/* 🌟 全局聊天：思考模式/极速模式 切换按钮 */}
+                           <button
+                               onClick={() => setIsThinkingMode(!isThinkingMode)}
+                               className={`p-2 rounded-xl flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
+                               title={isThinkingMode ? "思考模式 (Deep Thinking)" : "快速模式 (Fast Mode)"}
+                           >
+                               {isThinkingMode ? <BrainCircuit size={18} /> : <Zap size={18} />}
+                           </button>
+                           
+                           <input className="bg-transparent border-none outline-none text-base text-slate-800 w-full placeholder:text-slate-400 font-sans ml-2" placeholder={t.global_chat_placeholder} value={globalChatInput} onChange={(e) => setGlobalChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleGlobalChatSend()} autoFocus />
                            {isGlobalChatStreaming ? (
-                               <button onClick={handleStopGeneration} className="p-3 bg-rose-500 rounded-xl text-white hover:bg-rose-600 transition shadow-lg"><Square size={18} fill="currentColor" /></button>
+                               <button onClick={handleStopGeneration} className="p-3 bg-rose-500 rounded-xl text-white hover:bg-rose-600 transition shadow-lg shrink-0"><Square size={18} fill="currentColor" /></button>
                            ) : (
-                               <button disabled={!globalChatInput.trim()} className="p-3 bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 transition shadow-lg disabled:opacity-50" onClick={handleGlobalChatSend}><Send size={18} /></button>
+                               <button disabled={!globalChatInput.trim()} className="p-3 bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 transition shadow-lg disabled:opacity-50 shrink-0" onClick={handleGlobalChatSend}><Send size={18} /></button>
                            )}
                         </div>
                      </div>
@@ -1322,23 +1339,31 @@ export default function FinAgent() {
                          
                          {/* 巨大中心化对话框 */}
                          <div className="w-full relative z-50">
-                             <div className="relative flex items-center gap-4 bg-white border border-slate-300 rounded-2xl p-2 pl-6 shadow-xl focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
-                                 <div className="text-indigo-500 font-mono text-lg animate-pulse font-bold"><span>{'>'}</span></div>
+                             <div className="relative flex items-center gap-4 bg-white border border-slate-300 rounded-2xl p-2 pl-4 shadow-xl focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
+                                 {/* 🌟 核心中心聊天：思考模式/极速模式 切换按钮 */}
+                                 <button
+                                     onClick={() => setIsThinkingMode(!isThinkingMode)}
+                                     className={`p-2.5 rounded-xl flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
+                                     title={isThinkingMode ? "思考模式 (Deep Thinking)" : "快速模式 (Fast Mode)"}
+                                 >
+                                     {isThinkingMode ? <BrainCircuit size={20} /> : <Zap size={20} />}
+                                 </button>
+                                 
                                  <input 
-                                     className="bg-transparent border-none outline-none text-lg text-slate-800 w-full placeholder:text-slate-400 font-sans py-3" 
+                                     className="bg-transparent border-none outline-none text-lg text-slate-800 w-full placeholder:text-slate-400 font-sans py-3 ml-2" 
                                      placeholder={t.global_chat_placeholder} 
                                      value={globalChatInput} 
                                      onChange={(e) => setGlobalChatInput(e.target.value)} 
                                      onKeyDown={(e) => {
                                          if (e.key === 'Enter' && globalChatInput.trim()) {
                                              setIsGlobalChatActive(true);
-                                             setTimeout(handleGlobalChatSend, 0); // 异步确保状态切换完毕后再发请求
+                                             setTimeout(handleGlobalChatSend, 0); 
                                          }
                                      }} 
                                  />
                                  <button 
                                      disabled={!globalChatInput.trim()} 
-                                     className="p-4 bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 transition shadow-lg disabled:opacity-50" 
+                                     className="p-4 bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 transition shadow-lg disabled:opacity-50 shrink-0" 
                                      onClick={() => {
                                          setIsGlobalChatActive(true);
                                          setTimeout(handleGlobalChatSend, 0);
@@ -1530,7 +1555,7 @@ export default function FinAgent() {
                            <div className="text-xs text-slate-500 mb-6 font-medium"><span>点击卡片即可在主控制台恢复当时的对话上下文。</span></div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                {chatArchives.map(arch => (
-                                   // 🌟 核心修复 2：支持点击还原对话
+                                   // 🌟 支持点击还原对话
                                    <div key={arch.id} 
                                         onClick={() => resumeArchive(arch)}
                                         className="p-5 bg-white border border-slate-200 hover:border-emerald-200 hover:shadow-md rounded-2xl shadow-sm flex justify-between items-start group transition-all cursor-pointer"
@@ -1539,7 +1564,6 @@ export default function FinAgent() {
                                            <div className="text-[10px] text-slate-400 font-mono font-bold mb-1.5"><span>{arch.date}</span></div>
                                            <div className="text-sm font-bold text-slate-700 leading-relaxed truncate" title={arch.title}><span>{arch.title}</span></div>
                                        </div>
-                                       {/* 阻止事件冒泡，防止点删除时触发跳转 */}
                                        <button onClick={(e)=>{ e.stopPropagation(); deleteArchive(arch.id); }} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-50 p-2 rounded-lg"><Trash2 size={16}/></button>
                                    </div>
                                ))}
