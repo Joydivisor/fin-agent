@@ -162,7 +162,6 @@ export default function FinAgent() {
   const [isMounted, setIsMounted] = useState(false);
   const [showLanding, setShowLanding] = useState(true);
 
-  // 🌟 新增状态：控制新手引导弹窗
   const [showTutorial, setShowTutorial] = useState(false);
 
   const [watchlist, setWatchlist] = useState<{symbol: string, pinned: boolean}[] | null>(null);
@@ -422,7 +421,6 @@ export default function FinAgent() {
         setUserAccount(parsedUser);
         setShowLanding(false); 
         
-        // 🌟 检查该用户是否已经看过新手教程
         const tutorialDone = localStorage.getItem(`tutorial_done_${parsedUser.email}`);
         if (!tutorialDone) {
             setShowTutorial(true);
@@ -538,7 +536,7 @@ export default function FinAgent() {
           setTranslationText(''); 
           setTranslationDeep(false);
           setIsStreaming(true); 
-          streamAIResponse({ message: "请生成快速摘要与翻译。", context: { news: readingNews }, mode: 'translation' }, (text) => setTranslationText(text), () => setIsStreaming(false)); 
+          streamAIResponse({ message: "请阅读并解析。", context: { news: readingNews }, mode: 'translation' }, (text) => setTranslationText(text), () => setIsStreaming(false)); 
       } 
   }, [readingNews]);
 
@@ -651,7 +649,6 @@ export default function FinAgent() {
                   setUserAccount(newUser);
                   localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
                   
-                  // 登录后检查是否看过教程
                   const tutorialDone = localStorage.getItem(`tutorial_done_${authEmail}`);
                   if (!tutorialDone) {
                       setShowTutorial(true);
@@ -698,7 +695,6 @@ export default function FinAgent() {
               setUserAccount(newUser);
               localStorage.setItem('fin_agent_user', JSON.stringify(newUser));
               
-              // 刚注册的新用户强制看教程
               setShowTutorial(true);
               
               setAuthEmail('');
@@ -714,7 +710,6 @@ export default function FinAgent() {
       }
   };
 
-  // 🌟 新增：新兵训练营 (Onboarding Tutorial) 渲染器
   const renderTutorialModal = () => {
       if (!showTutorial || !userAccount) return null;
       return (
@@ -733,28 +728,28 @@ export default function FinAgent() {
                               <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl h-fit border border-indigo-100"><BrainCircuit size={20}/></div>
                               <div>
                                   <h3 className="font-black text-slate-800 mb-1 text-sm">思考模式 (Deep Thinking)</h3>
-                                  <p className="text-xs text-slate-500 leading-relaxed">对话框左侧的 🧠 按钮可切换模型心智。开启时，AI 将展示几千字的底层逻辑推演；切换为 ⚡️ 时，模型将拒绝思考，极速输出结论。</p>
+                                  <p className="text-xs text-slate-500 leading-relaxed">对话框左侧的 🧠 按钮可物理切换模型心智。开启时，AI 呈现底层推演；切换为 ⚡️ 时，模型将拒绝思考，极速输出结论。</p>
                               </div>
                           </div>
                           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
                               <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl h-fit border border-emerald-100"><Archive size={20}/></div>
                               <div>
                                   <h3 className="font-black text-slate-800 mb-1 text-sm">对话穿梭 (Time Travel)</h3>
-                                  <p className="text-xs text-slate-500 leading-relaxed">在控制台聊完后，点击右上角的“归档并清空”。被归档的对话会保存在【记忆库】中，点击任意历史卡片，即可瞬间恢复当时的聊天上下文。</p>
+                                  <p className="text-xs text-slate-500 leading-relaxed">在控制台聊完后，点击“归档并清空”。被归档的对话会保存在【记忆库】中，点击任意历史卡片，即可瞬间恢复当时的聊天上下文。</p>
                               </div>
                           </div>
                           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
                               <div className="p-2 bg-rose-50 text-rose-600 rounded-xl h-fit border border-rose-100"><Search size={20}/></div>
                               <div>
                                   <h3 className="font-black text-slate-800 mb-1 text-sm">智能检索与预览 (Smart Search)</h3>
-                                  <p className="text-xs text-slate-500 leading-relaxed">支持 A股中文、拼音缩写及雅虎代码。点击搜索结果后会进入【预览模式】，确认是你想要的标的后，点击名称旁边的“+ 加入自选”即可永久跟踪。</p>
+                                  <p className="text-xs text-slate-500 leading-relaxed">支持 A股中文、拼音缩写及雅虎代码。点击搜索结果后会进入【预览模式】，点击名称旁边的“+ 加入自选”即可永久跟踪。</p>
                               </div>
                           </div>
                           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
                               <div className="p-2 bg-amber-50 text-amber-600 rounded-xl h-fit border border-amber-100"><Sparkles size={20}/></div>
                               <div>
                                   <h3 className="font-black text-slate-800 mb-1 text-sm">无处不在的悬浮 AI</h3>
-                                  <p className="text-xs text-slate-500 leading-relaxed">在右侧新闻流点击 🌟 图标，或在股票详情页点击任意机构持仓饼图，都可以瞬间唤醒悬浮 AI，实现“指哪打哪”的穿透式追问。</p>
+                                  <p className="text-xs text-slate-500 leading-relaxed">在右侧新闻流点击 🌟 图标，或在股票详情页点击任意饼图，都可以瞬间唤醒悬浮 AI，实现“指哪打哪”的穿透式追问。</p>
                               </div>
                           </div>
                       </div>
@@ -1731,7 +1726,6 @@ export default function FinAgent() {
                            <div className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3"><div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100"><Sparkles size={18} className="text-amber-500"/></div> <span>Agent Capabilities</span></div>
                            <div className="font-medium mb-6"><span>The Fin-Agent supports <b>Zhipu GLM-5</b> and <b>DeepSeek V3/R1</b>.</span></div>
                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                               {/* 🌟 核心更新：加入心智切换模式的说明 */}
                                <li className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                    <div className="font-black text-slate-900 mb-2 flex items-center gap-2"><BrainCircuit size={14} className="text-indigo-500"/> <span>Dual-Engine Mode (双模心智)</span></div>
                                    <div className="text-xs text-slate-500"><span>点击对话框左侧的 🧠 / ⚡️ 按钮即可实时切换模型心智。开启思考模式（R1内核）适合深度分析；开启极速模式（V3内核）适合快速问答。</span></div>
@@ -1746,7 +1740,7 @@ export default function FinAgent() {
                                </li>
                                <li className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                    <div className="font-black text-slate-900 mb-2 flex items-center gap-2"><Globe2 size={14} className="text-emerald-500"/> <span>Smart Reader</span></div>
-                                   <div className="text-xs text-slate-500"><span>Click any news item in the terminal to instantly translate and summarize it using AI.</span></div>
+                                   <div className="text-xs text-slate-500"><span>点击任何新闻，AI 都会基于标题并调取自身知识库，强行生成包含事件摘要、行业影响和投资建议的深度研报。</span></div>
                                </li>
                                <li className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                    <div className="font-black text-slate-900 mb-2 flex items-center gap-2"><Archive size={14} className="text-indigo-500"/> <span>Contextual AI Chat</span></div>
