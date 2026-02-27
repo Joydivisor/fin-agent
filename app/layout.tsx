@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-// 设置网页的标题和描述
 export const metadata: Metadata = {
-  title: "FinAgent - 散户金融脱水机",
-  description: "基于 Gemini 的实时金融信息降噪工具",
+  title: "FinAgent - AI Financial Terminal",
+  description: "Next-Generation Multi-Modal AI Financial Analysis Platform",
 };
 
 export default function RootLayout({
@@ -14,7 +13,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      {/* 移除了字体变量，直接使用系统的 antialiased 抗锯齿渲染 */}
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+      </head>
       <body className="antialiased font-sans">
         {children}
       </body>

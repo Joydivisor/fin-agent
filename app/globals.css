@@ -5,6 +5,7 @@ body {
   background-color: #f8fafc; /* 极浅的蓝灰色底，提升质感 */
   color: #0f172a; 
   -webkit-font-smoothing: antialiased;
+  font-family: 'Inter', sans-serif;
 }
 
 /* 优雅的高级滚动条 */
@@ -12,3 +13,49 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Plugin System Theme Colors */
+:root {
+  --dcf-color: #0ea5e9; /* Sky Blue */
+  --research-color: #8b5cf6; /* Violet */
+  --portfolio-color: #10b981; /* Emerald */
+  --ib-color: #f59e0b; /* Amber */
+  --pe-color: #ec4899; /* Pink */
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.glass-input:focus {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+  outline: none;
+}
+
+/* Heatmap Utilities */
+.heatmap-cell {
+  transition: all 0.2s ease;
+}
+.heatmap-cell:hover {
+  transform: scale(1.1);
+  z-index: 10;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
