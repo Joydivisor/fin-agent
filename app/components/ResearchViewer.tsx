@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     ArrowLeft, FileText, Search, TrendingUp,
     RefreshCw, ChevronDown, AlertTriangle, Target, Shield
@@ -18,6 +18,52 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
     const abortRef = useRef<AbortController | null>(null);
     const reportEndRef = useRef<HTMLDivElement>(null);
 
+    const [financials, setFinancials] = useState({
+        revenueGrowth: 0.08, grossMargin: 0.46, operatingMargin: 0.30,
+        netMargin: 0.26, eps: 6.42, epsGrowth: 0.09, pe: 28.8,
+        evEbitda: 22.5, debtToEquity: 1.73, roe: 1.72, fcfYield: 0.035, dividendYield: 0.005
+    });
+
+    // ── Data Hydration ──
+    useEffect(() => {
+        const fetchFundamentals = async () => {
+            setIsGenerating(true);
+            try {
+                const res = await fetch(`/api/fundamentals?symbol=${symbol}`);
+                if (res.ok) {
+                    const data = await res.json();
+
+                    const rev = data.revenue || 1;
+                    const equity = (data.sharesOutstanding || 1) * (data.price || 1);
+                    const debt = data.totalDebt || 0;
+                    const ev = equity + debt - (data.totalCash || 0);
+
+                    const epsCalc = data.sharesOutstanding ? (data.revenue * data.profitMargins / data.sharesOutstanding) : 0;
+
+                    setFinancials(prev => ({
+                        ...prev,
+                        grossMargin: data.grossMargins || prev.grossMargin,
+                        operatingMargin: data.operatingMargins || prev.operatingMargin,
+                        netMargin: data.profitMargins || prev.netMargin,
+                        eps: epsCalc || prev.eps,
+                        pe: (data.price && epsCalc) ? (data.price / epsCalc) : prev.pe,
+                        evEbitda: (ev && data.ebitda) ? (ev / data.ebitda) : prev.evEbitda,
+                        debtToEquity: debt / equity || prev.debtToEquity,
+                        roe: (data.revenue * data.profitMargins) / equity || prev.roe,
+                        fcfYield: data.freeCashflow / equity || prev.fcfYield,
+                    }));
+                }
+            } catch (error) {
+                console.error("Error fetching fundamentals for research:", error);
+            }
+            setIsGenerating(false);
+        };
+
+        if (symbol) {
+            fetchFundamentals();
+        }
+    }, [symbol]);
+
     const generateReport = useCallback(async () => {
         setIsGenerating(true);
         setReportText('');
@@ -28,11 +74,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     symbol, reportType: 'full_report',
-                    financials: {
-                        revenueGrowth: 0.08, grossMargin: 0.46, operatingMargin: 0.30,
-                        netMargin: 0.26, eps: 6.42, epsGrowth: 0.09, pe: 28.8,
-                        evEbitda: 22.5, debtToEquity: 1.73, roe: 1.72, fcfYield: 0.035, dividendYield: 0.005
-                    }
+                    financials
                 }),
                 signal: abortRef.current.signal
             });
