@@ -6,10 +6,10 @@ import {
     RefreshCw, ChevronDown, AlertTriangle, Target, Shield
 } from 'lucide-react';
 
-interface Props { onBack: () => void; }
+interface Props { onBack: () => void; activeSymbol?: string; }
 
-export default function ResearchViewer({ onBack }: Props) {
-    const [symbol, setSymbol] = useState('AAPL');
+export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props) {
+    const [symbol, setSymbol] = useState(activeSymbol);
     const [isGenerating, setIsGenerating] = useState(false);
     const [reportText, setReportText] = useState('');
     const [reportMeta, setReportMeta] = useState<any>(null);
@@ -223,8 +223,8 @@ export default function ResearchViewer({ onBack }: Props) {
                                         <td className="px-3 py-2.5 text-center font-mono font-bold">{g.midpoint}</td>
                                         <td className="px-3 py-2.5 text-center">
                                             <span className={`px-2 py-1 rounded text-[10px] font-bold ${g.direction === 'raised' ? 'bg-emerald-100 text-emerald-700' :
-                                                    g.direction === 'lowered' ? 'bg-rose-100 text-rose-700' :
-                                                        'bg-slate-100 text-slate-600'
+                                                g.direction === 'lowered' ? 'bg-rose-100 text-rose-700' :
+                                                    'bg-slate-100 text-slate-600'
                                                 }`}>{g.direction}</span>
                                         </td>
                                     </tr>

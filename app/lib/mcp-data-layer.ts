@@ -435,6 +435,9 @@ export class MCPDataLayer {
             } else if (scheme === 'market' && type === 'chart') {
                 const res = await fetch(`${internalBaseUrl}/api/stock-detail?symbol=${value}&range=1D`);
                 data = await res.json();
+            } else if (scheme === 'market' && type === 'fundamentals') {
+                const res = await fetch(`${internalBaseUrl}/api/fundamentals?symbol=${value}`);
+                data = await res.json();
             } else if (scheme === 'research' && type === 'news') {
                 const res = await fetch(`${internalBaseUrl}/api/news?category=${value}`);
                 data = await res.json();

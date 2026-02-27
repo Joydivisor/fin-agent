@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     ArrowLeft, Building2, FileText, BarChart3,
     RefreshCw, Target, Shield, Calculator, Briefcase, Scale
@@ -10,11 +10,11 @@ import {
     PolarRadiusAxis, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell
 } from 'recharts';
 
-interface Props { onBack: () => void; }
+interface Props { onBack: () => void; activeSymbol?: string; }
 
 type TabId = 'deal_score' | 'lbo' | 'cim';
 
-export default function DealWorkspace({ onBack }: Props) {
+export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('deal_score');
     const [isComputing, setIsComputing] = useState(false);
 
@@ -48,6 +48,53 @@ export default function DealWorkspace({ onBack }: Props) {
         competitiveAdvantages: ['97% gross retention rate', 'Proprietary ML engine', '150+ enterprise customers'],
     });
     const [cimResult, setCimResult] = useState<any>(null);
+
+    // ── Data Hydration ──
+    useEffect(() => {
+        const fetchFundamentals = async () => {
+            setIsComputing(true);
+            try {
+                const res = await fetch(`/api/fundamentals?symbol=${activeSymbol}`);
+                if (!res.ok) { setIsComputing(false); return; }
+                const data = await res.json();
+
+                const toMillions = (val: number) => val ? val / 1_000_000 : 0;
+                const debtM = toMillions(data.totalDebt) || 350;
+                const ebitdaM = toMillions(data.ebitda) || 80;
+                const revM = toMillions(data.revenue) || 120;
+                const evM = toMillions(data.sharesOutstanding * data.price) + debtM - toMillions(data.totalCash);
+
+                // Update LBO Inputs
+                setLboInputs(prev => ({
+                    ...prev,
+                    enterpriseValue: evM > 0 ? evM : 500,
+                    debtAmount: debtM > 0 ? debtM : 350,
+                    projectedEBITDA: [ebitdaM, ebitdaM * 1.1, ebitdaM * 1.21, ebitdaM * 1.33, ebitdaM * 1.46]
+                }));
+
+                // Update CIM Inputs
+                setCimInputs(prev => ({
+                    ...prev,
+                    companyName: activeSymbol,
+                    revenue: data.revenue || 120e6,
+                    ebitda: data.ebitda || 36e6,
+                    ebitdaMargin: data.ebitda && data.revenue ? (data.ebitda / data.revenue) : 0.30
+                }));
+
+                // Update Deal Scores (Just the name)
+                setDealScores(prev => ({
+                    ...prev,
+                    companyName: activeSymbol
+                }));
+
+            } catch (error) {
+                console.error("Error fetching fundamentals in DealWorkspace:", error);
+            }
+            setIsComputing(false);
+        };
+
+        if (activeSymbol) fetchFundamentals();
+    }, [activeSymbol]);
 
     const computeDealScore = useCallback(async () => {
         setIsComputing(true);

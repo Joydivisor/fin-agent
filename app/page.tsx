@@ -972,8 +972,8 @@ export default function FinAgent() {
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hidden sm:block"><span>AI Core:</span></span>
                     <div className="relative group z-50">
                         <button className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all shadow-sm hover:shadow ${activeEngine === 'deepseek' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100' :
-                                activeEngine === 'zhipu' ? 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100' :
-                                    'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                            activeEngine === 'zhipu' ? 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100' :
+                                'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
                             }`}>
                             {activeEngine === 'deepseek' ? <Flame size={12} /> : activeEngine === 'zhipu' ? <BrainCircuit size={12} /> : <CloudLightning size={12} />}
                             <span>{activeEngine === 'deepseek' ? 'DeepSeek V3' : activeEngine === 'zhipu' ? 'Zhipu GLM-5' : 'Gemini 1.5'}</span>
@@ -1792,7 +1792,7 @@ export default function FinAgent() {
                 {/* VIEW 6: Command Center */}
                 {activeNavIndex === 6 && (
                     <div className="flex-1 w-full h-full min-h-0 relative overflow-y-auto bg-slate-50">
-                        <FinancialCommandCenter />
+                        <FinancialCommandCenter activeSymbol={selectedTicker?.symbol || 'AAPL'} />
                     </div>
                 )}
 

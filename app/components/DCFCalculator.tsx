@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     ArrowLeft, Calculator, TrendingUp, BarChart3,
     DollarSign, Activity, ChevronDown, RefreshCw, Layers, Sigma
@@ -10,11 +10,11 @@ import {
     ScatterChart, Scatter, CartesianGrid
 } from 'recharts';
 
-interface Props { onBack: () => void; }
+interface Props { onBack: () => void; activeSymbol?: string; }
 
 type TabId = 'dcf' | 'wacc' | 'black_scholes' | 'three_statement';
 
-export default function DCFCalculator({ onBack }: Props) {
+export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('dcf');
     const [isComputing, setIsComputing] = useState(false);
 
@@ -63,6 +63,61 @@ export default function DCFCalculator({ onBack }: Props) {
         priorRetainedEarnings: 300, dso: 30, dio: 45, dpo: 35,
     });
     const [tsResult, setTsResult] = useState<any>(null);
+
+    // ── Data Hydration ──
+    useEffect(() => {
+        const fetchFundamentals = async () => {
+            setIsComputing(true);
+            try {
+                // Fetch fundamental data via the MCP Data Layer alias
+                const res = await fetch(`/api/fundamentals?symbol=${activeSymbol}`);
+                if (!res.ok) { setIsComputing(false); return; }
+                const data = await res.json();
+
+                // Normalizing to Millions (or formatting accordingly)
+                const toMillions = (val: number) => val ? val / 1_000_000 : 0;
+
+                const fcfM = toMillions(data.freeCashflow) || 100;
+                const debtM = toMillions(data.totalDebt) || 200;
+                const cashM = toMillions(data.totalCash) || 50;
+                const sharesM = toMillions(data.sharesOutstanding) || 50;
+                const price = data.price || 150;
+                const equityValueM = sharesM * price;
+
+                // Update WACC inputs
+                setWaccInputs(prev => ({
+                    ...prev,
+                    beta: data.beta,
+                    equityValue: equityValueM,
+                    debtValue: debtM,
+                }));
+
+                // Update DCF inputs
+                // Extrapolate a simple 5-year FCF based on the current FCF and some default growth
+                setDcfInputs(prev => ({
+                    ...prev,
+                    fcf: [fcfM, fcfM * 1.1, fcfM * 1.21, fcfM * 1.33, fcfM * 1.46],
+                    netDebt: debtM - cashM,
+                    sharesOutstanding: sharesM
+                }));
+
+                // Update BS inputs
+                setBsInputs(prev => ({
+                    ...prev,
+                    stockPrice: price,
+                    strikePrice: price * 1.05 // default slightly out of money
+                }));
+
+            } catch (error) {
+                console.error("Error fetching fundamentals in DCFCalculator:", error);
+            }
+            setIsComputing(false);
+        };
+
+        if (activeSymbol) {
+            fetchFundamentals();
+        }
+    }, [activeSymbol]);
 
     // ── API Calls ──
     const computeDCF = useCallback(async () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     ArrowLeft, PieChart, TrendingUp, Shield, DollarSign,
     RefreshCw, BarChart3, Calculator, Leaf, Shuffle
@@ -11,11 +11,11 @@ import {
     AreaChart, Area, ReferenceLine
 } from 'recharts';
 
-interface Props { onBack: () => void; }
+interface Props { onBack: () => void; activeSymbol?: string; }
 
 type TabId = 'overview' | 'optimize' | 'tax_harvest' | 'monte_carlo';
 
-export default function PortfolioVisualizer({ onBack }: Props) {
+export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
     const [isComputing, setIsComputing] = useState(false);
 
@@ -26,6 +26,34 @@ export default function PortfolioVisualizer({ onBack }: Props) {
         { symbol: 'GLD', shares: 30, currentPrice: 190, costBasis: 170, expectedReturn: 0.06, volatility: 0.15, assetClass: 'commodity' as const, holdingDays: 250 },
         { symbol: 'VNQ', shares: 80, currentPrice: 85, costBasis: 92, expectedReturn: 0.08, volatility: 0.18, assetClass: 'reit' as const, holdingDays: 180 },
     ]);
+
+    // ── Data Hydration: Update holding prices ──
+    const fetchLatestPrices = useCallback(async () => {
+        setIsComputing(true);
+        try {
+            const symbols = holdings.map(h => h.symbol).join(',');
+            const res = await fetch(`/api/market-data?symbols=${symbols}`);
+            if (res.ok) {
+                const data = await res.json();
+                const priceMap: Record<string, number> = {};
+                data.forEach((item: any) => {
+                    priceMap[item.symbol] = item.price;
+                });
+
+                setHoldings(prev => prev.map(h => ({
+                    ...h,
+                    currentPrice: priceMap[h.symbol] || h.currentPrice
+                })));
+            }
+        } catch (error) {
+            console.error("Error fetching portfolio prices:", error);
+        }
+        setIsComputing(false);
+    }, [holdings.length]); // Only re-run if the number of holdings changes (or manually)
+
+    useEffect(() => {
+        fetchLatestPrices();
+    }, [fetchLatestPrices]);
 
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [optimizeResult, setOptimizeResult] = useState<any>(null);

@@ -73,21 +73,21 @@ const PLUGINS: PluginConfig[] = [
     },
 ];
 
-export default function FinancialCommandCenter() {
+export default function FinancialCommandCenter({ activeSymbol = 'AAPL' }: { activeSymbol?: string }) {
     const [activePlugin, setActivePlugin] = useState<PluginId>('hub');
 
     // ── Sub-component rendering ──
     if (activePlugin === 'financial_analysis') {
-        return <DCFCalculator onBack={() => setActivePlugin('hub')} />;
+        return <DCFCalculator activeSymbol={activeSymbol} onBack={() => setActivePlugin('hub')} />;
     }
     if (activePlugin === 'equity_research') {
-        return <ResearchViewer onBack={() => setActivePlugin('hub')} />;
+        return <ResearchViewer activeSymbol={activeSymbol} onBack={() => setActivePlugin('hub')} />;
     }
     if (activePlugin === 'wealth_management') {
-        return <PortfolioVisualizer onBack={() => setActivePlugin('hub')} />;
+        return <PortfolioVisualizer activeSymbol={activeSymbol} onBack={() => setActivePlugin('hub')} />;
     }
     if (activePlugin === 'ib_pe') {
-        return <DealWorkspace onBack={() => setActivePlugin('hub')} />;
+        return <DealWorkspace activeSymbol={activeSymbol} onBack={() => setActivePlugin('hub')} />;
     }
 
     // ── Hub View ──
