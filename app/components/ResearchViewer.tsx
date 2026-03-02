@@ -17,11 +17,12 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
     const [guidanceResult, setGuidanceResult] = useState<any>(null);
     const abortRef = useRef<AbortController | null>(null);
     const reportEndRef = useRef<HTMLDivElement>(null);
+    const [currentPrice, setCurrentPrice] = useState(0);
 
-    const [financials, setFinancials] = useState({
-        revenueGrowth: 0.08, grossMargin: 0.46, operatingMargin: 0.30,
-        netMargin: 0.26, eps: 6.42, epsGrowth: 0.09, pe: 28.8,
-        evEbitda: 22.5, debtToEquity: 1.73, roe: 1.72, fcfYield: 0.035, dividendYield: 0.005
+    const [financials, setFinancials] = useState<Record<string, number>>({
+        revenueGrowth: 0, grossMargin: 0, operatingMargin: 0,
+        netMargin: 0, eps: 0, epsGrowth: 0, pe: 0,
+        evEbitda: 0, debtToEquity: 0, roe: 0, fcfYield: 0, dividendYield: 0
     });
 
     // ── Data Hydration ──
@@ -33,25 +34,31 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
                 if (res.ok) {
                     const data = await res.json();
 
-                    const rev = data.revenue || 1;
-                    const equity = (data.sharesOutstanding || 1) * (data.price || 1);
+                    const price = data.price || 0;
+                    setCurrentPrice(price);
+
+                    const equity = (data.sharesOutstanding || 1) * (price || 1);
                     const debt = data.totalDebt || 0;
                     const ev = equity + debt - (data.totalCash || 0);
 
-                    const epsCalc = data.sharesOutstanding ? (data.revenue * data.profitMargins / data.sharesOutstanding) : 0;
+                    // Use Yahoo Finance real EPS/PE when available, fallback to computed
+                    const realEps = data.trailingEps || (data.sharesOutstanding ? (data.revenue * data.profitMargins / data.sharesOutstanding) : 0);
+                    const realPe = data.trailingPE || (price && realEps ? price / realEps : 0);
 
-                    setFinancials(prev => ({
-                        ...prev,
-                        grossMargin: data.grossMargins || prev.grossMargin,
-                        operatingMargin: data.operatingMargins || prev.operatingMargin,
-                        netMargin: data.profitMargins || prev.netMargin,
-                        eps: epsCalc || prev.eps,
-                        pe: (data.price && epsCalc) ? (data.price / epsCalc) : prev.pe,
-                        evEbitda: (ev && data.ebitda) ? (ev / data.ebitda) : prev.evEbitda,
-                        debtToEquity: debt / equity || prev.debtToEquity,
-                        roe: (data.revenue * data.profitMargins) / equity || prev.roe,
-                        fcfYield: data.freeCashflow / equity || prev.fcfYield,
-                    }));
+                    setFinancials({
+                        revenueGrowth: data.revenueGrowth || 0,
+                        grossMargin: data.grossMargins || 0,
+                        operatingMargin: data.operatingMargins || 0,
+                        netMargin: data.profitMargins || 0,
+                        eps: realEps,
+                        epsGrowth: data.earningsGrowth || 0,
+                        pe: realPe,
+                        evEbitda: (ev && data.ebitda) ? (ev / data.ebitda) : 0,
+                        debtToEquity: equity ? (debt / equity) : 0,
+                        roe: equity ? ((data.revenue * data.profitMargins) / equity) : 0,
+                        fcfYield: equity ? (data.freeCashflow / equity) : 0,
+                        dividendYield: data.dividendYield || 0,
+                    });
                 }
             } catch (error) {
                 console.error("Error fetching fundamentals for research:", error);
@@ -74,6 +81,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     symbol, reportType: 'full_report',
+                    currentPrice,
                     financials
                 }),
                 signal: abortRef.current.signal
@@ -120,7 +128,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
             if (err.name !== 'AbortError') setReportText(`⚠️ ${err.message}`);
         }
         setIsGenerating(false);
-    }, [symbol]);
+    }, [symbol, financials, currentPrice]);
 
     const extractGuidance = useCallback(async () => {
         if (!guidanceText.trim()) return;

@@ -18,7 +18,7 @@ export async function GET(req: Request) {
         const fetchOptions = { fetchOptions: { agent } };
 
         const quoteSummary = await yf.quoteSummary(symbol, {
-            modules: ['financialData', 'defaultKeyStatistics', 'price']
+            modules: ['financialData', 'defaultKeyStatistics', 'price', 'summaryDetail']
         }, fetchOptions);
 
         if (!quoteSummary) {
@@ -28,6 +28,7 @@ export async function GET(req: Request) {
         const fd = quoteSummary.financialData || {};
         const dks = quoteSummary.defaultKeyStatistics || {};
         const price = quoteSummary.price || {};
+        const sd = quoteSummary.summaryDetail || {};
 
         // Extract necessary parameters for our DCF / WACC calculations
         // Fallbacks to 0 or safe defaults if data is missing
@@ -44,7 +45,14 @@ export async function GET(req: Request) {
             ebitda: fd.ebitda || 0,
             grossMargins: fd.grossMargins || 0,
             operatingMargins: fd.operatingMargins || 0,
-            profitMargins: fd.profitMargins || 0
+            profitMargins: fd.profitMargins || 0,
+            // Equity Research metrics — real Yahoo Finance data
+            trailingEps: dks.trailingEps || fd.earningsPerShare || 0,
+            trailingPE: sd.trailingPE || price.trailingPE || 0,
+            forwardPE: sd.forwardPE || price.forwardPE || 0,
+            revenueGrowth: fd.revenueGrowth || 0,
+            earningsGrowth: fd.earningsGrowth || 0,
+            dividendYield: sd.dividendYield || dks.dividendYield || 0,
         };
 
         return NextResponse.json(data);
