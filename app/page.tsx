@@ -881,8 +881,8 @@ export default function FinAgent() {
     const currentNewsData = selectedTicker ? (stockDetail?.news || []) : globalNews;
     const zoomedChartData = (isFlowChartExpanded && stockDetail?.chart && zoomState) ? stockDetail.chart.slice(zoomState.left, zoomState.right + 1) : (stockDetail?.chart || []);
 
-    const axisColor = '#64748b';
-    const gridColor = '#e2e8f0';
+    const axisColor = '#475569';
+    const gridColor = '#1e293b';
 
     if (!isMounted) return null;
 
@@ -891,24 +891,24 @@ export default function FinAgent() {
     // ==========================================
     if (showLanding) {
         return (
-            <div className="min-h-screen w-full bg-slate-50 font-sans text-slate-800 flex flex-col relative selection:bg-indigo-500/20">
-                <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-2 text-indigo-600 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100">
+            <div className="min-h-screen w-full bg-[#0a0e1a] font-sans text-slate-200 flex flex-col relative selection:bg-indigo-500/20">
+                <header className="h-16 border-b border-slate-800 bg-[#0f1629]/90 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-indigo-400 font-bold bg-indigo-950/50 px-3 py-1.5 rounded-lg border border-indigo-800/50">
                         <Activity size={16} className="animate-pulse" />
                         <span className="font-black italic tracking-tighter text-sm">FIN-AGENT</span>
                     </div>
-                    <button onClick={() => { setAuthMode('login'); setShowAuthModal(true); }} className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"><span>Sign In</span></button>
+                    <button onClick={() => { setAuthMode('login'); setShowAuthModal(true); }} className="text-sm font-bold text-slate-400 hover:text-indigo-400 transition-colors"><span>Sign In</span></button>
                 </header>
 
-                <main className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
-                    <div className="w-20 h-20 bg-white border border-slate-100 rounded-3xl shadow-xl flex items-center justify-center mb-8 relative">
-                        <div className="absolute -inset-8 bg-indigo-400/20 rounded-full blur-2xl animate-pulse" />
-                        <Bot size={40} className="text-indigo-600 relative z-10" />
+                <main className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/30 via-[#0a0e1a] to-[#0a0e1a]">
+                    <div className="w-20 h-20 bg-[#111827] border border-slate-800 rounded-3xl shadow-2xl flex items-center justify-center mb-8 relative">
+                        <div className="absolute -inset-8 bg-indigo-500/15 rounded-full blur-2xl animate-pulse" />
+                        <Bot size={40} className="text-indigo-400 relative z-10" />
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight mb-6 max-w-4xl leading-tight">
-                        <span>The Autonomous </span><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-emerald-500">AI Financial</span><span> Terminal</span>
+                    <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-tight">
+                        <span>The Autonomous </span><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">AI Financial</span><span> Terminal</span>
                     </h1>
-                    <div className="text-lg md:text-xl text-slate-500 max-w-2xl mb-12 leading-relaxed font-medium">
+                    <div className="text-lg md:text-xl text-slate-400 max-w-2xl mb-12 leading-relaxed font-medium">
                         <span>Deep research, real-time alerts, and personalized tactical analysis powered by next-gen reasoning models. Your 24/7 intelligent investment copilot.</span>
                     </div>
                     <button
@@ -919,21 +919,24 @@ export default function FinAgent() {
                     </button>
 
                     <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full text-left">
-                        <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-6 border border-indigo-100"><BrainCircuit size={24} /></div>
-                            <h3 className="text-xl font-black text-slate-900 mb-3"><span>Deep Reasoning</span></h3>
-                            <div className="text-sm text-slate-500 leading-relaxed"><span>Powered by DeepSeek V3/R1 and GLM-5. Uncover hidden market logic beyond surface-level data with dual-track analysis.</span></div>
+                        <div className="p-8 bg-[#111827] rounded-3xl border border-slate-800 hover:border-indigo-800/50 transition-all">
+                            <div className="w-12 h-12 bg-indigo-950/50 rounded-2xl flex items-center justify-center text-indigo-400 mb-6 border border-indigo-800/50"><BrainCircuit size={24} /></div>
+                            <h3 className="text-xl font-black text-white mb-3"><span>Deep Reasoning</span></h3>
+                            <div className="text-sm text-slate-400 leading-relaxed"><span>Powered by DeepSeek V3/R1 and GLM-5. Uncover hidden market logic beyond surface-level data with dual-track analysis.</span></div>
                         </div>
-                        <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mb-6 border border-emerald-100"><Archive size={24} /></div>
-                            <h3 className="text-xl font-black text-slate-900 mb-3"><span>Auto-RAG Memory</span></h3>
-                            <div className="text-sm text-slate-500 leading-relaxed"><span>The Agent automatically archives your conversations and preferences to provide highly contextualized tactical advice over time.</span></div>
+                        <div className="p-8 bg-[#111827] rounded-3xl border border-slate-800 hover:border-emerald-800/50 transition-all">
+                            <div className="w-12 h-12 bg-emerald-950/50 rounded-2xl flex items-center justify-center text-emerald-400 mb-6 border border-emerald-800/50"><Archive size={24} /></div>
+                            <h3 className="text-xl font-black text-white mb-3"><span>Auto-RAG Memory</span></h3>
+                            <div className="text-sm text-slate-400 leading-relaxed"><span>The Agent automatically archives your conversations and preferences to provide highly contextualized tactical advice over time.</span></div>
                         </div>
-                        <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600 mb-6 border border-rose-100"><Activity size={24} /></div>
-                            <h3 className="text-xl font-black text-slate-900 mb-3"><span>Real-time Intel</span></h3>
-                            <div className="text-sm text-slate-500 leading-relaxed"><span>24/7 global news scraping and smart money flow tracking with automated volatility alerts delivered straight to your dashboard.</span></div>
+                        <div className="p-8 bg-[#111827] rounded-3xl border border-slate-800 hover:border-rose-800/50 transition-all">
+                            <div className="w-12 h-12 bg-rose-950/50 rounded-2xl flex items-center justify-center text-rose-400 mb-6 border border-rose-800/50"><Activity size={24} /></div>
+                            <h3 className="text-xl font-black text-white mb-3"><span>Real-time Intel</span></h3>
+                            <div className="text-sm text-slate-400 leading-relaxed"><span>24/7 global news scraping and smart money flow tracking with automated volatility alerts delivered straight to your dashboard.</span></div>
                         </div>
+                    </div>
+                    <div className="mt-16 max-w-3xl text-center text-[10px] text-slate-600 leading-relaxed px-4">
+                        <span>⚠️ LEGAL DISCLAIMER: FIN-AGENT is an AI-powered informational tool for educational purposes only. It is NOT a registered investment advisor. All data is derived from delayed/historical feeds and may contain inaccuracies. Past performance is not indicative of future results. Consult a qualified financial professional before making investment decisions. By using this platform, you assume full responsibility for your actions.</span>
                     </div>
                 </main>
                 {renderAuthModal()}
@@ -945,22 +948,22 @@ export default function FinAgent() {
     // 🌟 控制台主页面 (Dashboard)
     // ==========================================
     return (
-        <div className="h-screen w-full flex flex-col font-sans overflow-hidden selection:bg-indigo-500/20 bg-slate-50 text-slate-800 relative">
+        <div className="h-screen w-full flex flex-col font-sans overflow-hidden selection:bg-indigo-500/20 bg-[#0a0e1a] text-slate-200 relative">
 
             {/* 🌟 渲染新兵训练营 */}
             {renderTutorialModal()}
 
             {/* --- Top Header --- */}
-            <div className="h-10 bg-white border-b border-slate-200 flex items-center px-4 justify-between shrink-0 z-30 shadow-sm relative">
+            <div className="h-10 bg-[#0f1629] border-b border-slate-800 flex items-center px-4 justify-between shrink-0 z-30 relative">
                 <div className="flex gap-6 text-[11px] font-medium tracking-tight items-center">
-                    <div className="flex gap-2 items-center text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                    <div className="flex gap-2 items-center text-indigo-400 font-bold bg-indigo-950/50 px-2 py-1 rounded-md border border-indigo-800/50">
                         <Activity size={14} className="animate-pulse" />
                         <span className="font-black italic tracking-tighter text-xs">FIN-AGENT</span>
                     </div>
-                    <div className="w-px h-4 bg-slate-200" />
-                    <div className="flex gap-5 overflow-hidden text-slate-500 font-mono items-center">
+                    <div className="w-px h-4 bg-slate-700" />
+                    <div className="flex gap-5 overflow-hidden text-slate-400 font-mono items-center tabular-nums">
                         {marketData.slice(0, 5).map(m => (
-                            <div key={m.symbol} className="flex items-center gap-2 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                            <div key={m.symbol} className="flex items-center gap-2 bg-slate-900/50 px-2 py-0.5 rounded border border-slate-800">
                                 <span className="text-slate-500 font-bold">{m.symbol}</span>
                                 <b className={getChangeColor(m.change)}>{m.price?.toFixed(2)}</b>
                             </div>
@@ -1037,11 +1040,11 @@ export default function FinAgent() {
             </div>
 
             {/* --- Main Navigation Menu --- */}
-            <nav className="h-14 border-b border-slate-200 flex items-center px-4 justify-between bg-white shrink-0 z-20 shadow-sm relative">
+            <nav className="h-14 border-b border-slate-800 flex items-center px-4 justify-between bg-[#0f1629] shrink-0 z-20 relative">
                 <div className="flex items-center gap-4 w-2/5 relative">
                     <div
                         onClick={handleReturnHome}
-                        className="cursor-pointer bg-slate-50 border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 text-slate-500 p-2.5 rounded-xl transition-all shadow-sm group relative flex items-center justify-center z-[60]"
+                        className="cursor-pointer bg-slate-900/50 border border-slate-700 hover:bg-indigo-950/50 hover:border-indigo-700 hover:text-indigo-400 text-slate-500 p-2.5 rounded-xl transition-all group relative flex items-center justify-center z-[60]"
                     >
                         <LayoutDashboard size={16} />
                         <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-white text-[11px] font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-[60] shadow-xl transition-opacity">
@@ -1052,7 +1055,7 @@ export default function FinAgent() {
                     <div className="relative w-full max-w-md group z-50">
                         <Search size={16} className="absolute left-3.5 top-3 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
-                            className="w-full bg-slate-50 border border-slate-200 rounded-full pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all font-mono placeholder:text-slate-400 shadow-inner"
+                            className="w-full bg-slate-900/60 border border-slate-700 rounded-full pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono placeholder:text-slate-500"
                             placeholder={t.search}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1076,26 +1079,26 @@ export default function FinAgent() {
                         ) : null}
                     </div>
                 </div>
-                <div className="flex gap-2 items-center bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner">
+                <div className="flex gap-2 items-center bg-slate-900/50 p-1.5 rounded-xl border border-slate-800">
                     {t.nav.map((item, idx) => (
                         <button
                             key={item}
                             onClick={() => { setActiveNavIndex(idx); setSelectedTicker(null); setIsGlobalChatActive(false); setIsStockChatExpanded(false); }}
-                            className={`px-5 py-2 text-[11px] font-bold rounded-lg transition-all uppercase tracking-tight ${activeNavIndex === idx ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-transparent'}`}
+                            className={`px-5 py-2 text-[11px] font-bold rounded-lg transition-all uppercase tracking-tight ${activeNavIndex === idx ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 border border-transparent'}`}
                         >
                             <span>{item}</span>
                         </button>
                     ))}
                 </div>
-                <div className="flex gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner">
+                <div className="flex gap-1.5 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800">
                     {['ZH', 'EN', 'JA', 'KO'].map(l => (
-                        <button key={l} onClick={() => setLang(l as any)} className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all ${lang === l ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-400 hover:text-slate-700'}`}><span>{l}</span></button>
+                        <button key={l} onClick={() => setLang(l as any)} className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all ${lang === l ? 'bg-slate-700 text-white border border-slate-600' : 'text-slate-500 hover:text-slate-300'}`}><span>{l}</span></button>
                     ))}
                 </div>
             </nav>
 
             {/* --- Dynamic Main Views --- */}
-            <main className="flex-1 bg-slate-50 min-h-0 overflow-hidden flex flex-col p-4 relative z-0">
+            <main className="flex-1 bg-[#0a0e1a] min-h-0 overflow-hidden flex flex-col p-4 relative z-0">
 
                 {/* VIEW 0: Workspaces */}
                 {activeNavIndex === 0 && (
@@ -1972,13 +1975,18 @@ export default function FinAgent() {
                 </div>
             ) : null}
 
-            {/* --- Footer --- */}
-            <footer className="h-8 bg-slate-800 border-t border-slate-900 px-5 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest z-10 transition-colors">
-                <div className="flex gap-8">
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_#10b981]" /> <span>{t.status}</span></div>
-                    <div className="text-slate-500"><span>{t.region}</span></div>
+            {/* --- Footer with Legal Disclaimer --- */}
+            <footer className="bg-[#060912] border-t border-slate-800 px-5 py-1.5 flex flex-col gap-1 z-10">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <div className="flex gap-8">
+                        <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_#10b981] live-indicator" /> <span>{t.status}</span></div>
+                        <div className="text-slate-600"><span>{t.region}</span></div>
+                    </div>
+                    <div className="font-mono text-slate-400 tabular-nums"><span>{currentTime || '--:--:--'}</span></div>
                 </div>
-                <div className="font-mono text-slate-300"><span>{currentTime || '--:--:--'}</span></div>
+                <div className="text-[9px] text-slate-700 text-center leading-relaxed">
+                    <span>DISCLAIMER: FIN-AGENT provides AI-generated analysis for informational purposes only. Not investment advice. All data from delayed/historical feeds. Past performance ≠ future results. Consult a licensed professional.</span>
+                </div>
             </footer>
         </div>
     );

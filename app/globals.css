@@ -1,61 +1,152 @@
 @import "tailwindcss";
 
-/* 纯净通透的底色与全局文字设定 */
+/* ═══════════════════════════════════════════════════════════
+   FIN-AGENT — Obsidian Dark Theme (Institutional Grade v2.0)
+   Inspired by Bloomberg Terminal / CapIQ aesthetics.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Base ── */
 body {
-  background-color: #f8fafc; /* 极浅的蓝灰色底，提升质感 */
-  color: #0f172a; 
+  background-color: #0a0e1a;
+  color: #e2e8f0;
   -webkit-font-smoothing: antialiased;
-  font-family: 'Inter', sans-serif;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* 优雅的高级滚动条 */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* ── Quantitative Typography ── */
+/* Force tabular (monospaced) numerals for financial data alignment */
+.tabular-nums,
+table td,
+.font-mono,
+[data-financial] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
 
-/* Plugin System Theme Colors */
+/* ── Professional Scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* ── Plugin System Theme Colors ── */
 :root {
-  --dcf-color: #0ea5e9; /* Sky Blue */
-  --research-color: #8b5cf6; /* Violet */
-  --portfolio-color: #10b981; /* Emerald */
-  --ib-color: #f59e0b; /* Amber */
-  --pe-color: #ec4899; /* Pink */
+  --dcf-color: #0ea5e9;
+  --research-color: #8b5cf6;
+  --portfolio-color: #10b981;
+  --ib-color: #f59e0b;
+  --pe-color: #ec4899;
+
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #0f1629;
+  --bg-card: #111827;
+  --bg-elevated: #1e293b;
+  --border-subtle: rgba(148, 163, 184, 0.08);
+  --border-medium: rgba(148, 163, 184, 0.15);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #3b82f6;
+  --accent-indigo: #6366f1;
+  --gain-color: #ef4444;
+  --loss-color: #22c55e;
 }
 
-/* Glassmorphism Utilities */
+/* ── Glassmorphism (Dark Mode) ── */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 22, 41, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.6);
+  background: rgba(17, 24, 39, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
 }
 
 .glass-input {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: rgba(15, 22, 41, 0.6);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
 }
 
 .glass-input:focus {
-  background: rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(15, 22, 41, 0.8);
+  border-color: var(--accent-indigo);
   outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
-/* Heatmap Utilities */
+/* ── Heatmap ── */
 .heatmap-cell {
   transition: all 0.2s ease;
 }
+
 .heatmap-cell:hover {
   transform: scale(1.1);
   z-index: 10;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Skeleton Loading ── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* ── Legal Disclaimer Bar ── */
+.disclaimer-bar {
+  background: rgba(15, 22, 41, 0.95);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.5;
+  padding: 8px 16px;
+  text-align: center;
+}
+
+/* ── Pulse glow for live data ── */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 8px 2px rgba(99, 102, 241, 0.15);
+  }
+}
+
+.live-indicator {
+  animation: pulse-glow 2s infinite;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 60; 
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
@@ -12,6 +12,11 @@ export async function POST(req: Request) {
         let systemPrompt = `你是一个名为 FIN-AGENT 的多模态 AI 金融终端核心。
 你的语气应该极其专业、冰冷、精准，像一个华尔街的高级量化分析师。
 【重要系统时间注入】：当前真实世界的系统时间是 ${currentRealTime}。请在所有的分析、预测和判断中，严格以此时间为基准！绝不能说错当前年份或日期！
+
+【合规免责声明 — 强制执行】：
+你的每一段分析性回复的末尾，必须附加以下免责声明（用斜体 Markdown 格式），不得省略：
+*⚠️ 免责声明：以上内容由 AI 模型自动生成，仅供信息参考与学术研究，不构成任何投资建议。所有数据基于历史/延迟行情，不保证准确性。投资有风险，决策需谨慎。*
+只有在用户明确要求闲聊或非金融话题时，才可以省略此声明。
 `;
 
         if (userProfile) {
@@ -48,11 +53,11 @@ export async function POST(req: Request) {
             apiUrl = 'https://api.deepseek.com/v1/chat/completions';
             apiKey = process.env.DEEPSEEK_API_KEY || '';
             // 🌟 真实的心智切换：思考模式用 R1 引擎，极速模式直接切换为 V3 对话引擎！
-            model = useThinking ? 'deepseek-reasoner' : 'deepseek-chat'; 
+            model = useThinking ? 'deepseek-reasoner' : 'deepseek-chat';
         } else {
             apiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
             apiKey = process.env.ZHIPU_API_KEY || '';
-            model = 'glm-4-plus'; 
+            model = 'glm-4-plus';
         }
 
         if (!apiKey) {
@@ -69,7 +74,7 @@ export async function POST(req: Request) {
                 model: model,
                 messages: messages,
                 stream: true,
-                max_tokens: 8192, 
+                max_tokens: 8192,
                 temperature: 0.6
             })
         });
@@ -91,10 +96,10 @@ export async function POST(req: Request) {
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        
+
                         const chunk = decoder.decode(value, { stream: true });
                         const lines = chunk.split('\n').filter(line => line.trim() !== '');
-                        
+
                         for (const line of lines) {
                             if (line === 'data: [DONE]') continue;
                             if (line.startsWith('data: ')) {
@@ -102,14 +107,14 @@ export async function POST(req: Request) {
                                     const parsed = JSON.parse(line.slice(6));
                                     const content = parsed.choices[0]?.delta?.content || '';
                                     const reasoning = parsed.choices[0]?.delta?.reasoning_content || '';
-                                    
+
                                     if (reasoning) {
                                         controller.enqueue(new TextEncoder().encode(`> **🧠 深度思考中...**\n${reasoning}\n\n---\n\n`));
                                     }
                                     if (content) {
                                         controller.enqueue(new TextEncoder().encode(content));
                                     }
-                                } catch (e) {}
+                                } catch (e) { }
                             }
                         }
                     }
