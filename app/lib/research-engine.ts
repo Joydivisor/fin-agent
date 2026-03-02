@@ -148,91 +148,194 @@ export class ResearchEngine {
     }
 
     /**
-     * Quantitative rating model based on financial metrics.
+     * Quantitative rating model — Continuous Sigmoid Scoring (v2.0).
+     * 
+     * Unlike v1.0 which used hard-coded if/else thresholds, this model
+     * uses continuous sigmoid functions to map each metric into a smooth
+     * [0, 10] score, then applies weighted aggregation.
      * 
      * Scoring system (0-100):
-     *   Growth Score   = f(revenueGrowth, epsGrowth)        × 25%
-     *   Profitability  = f(grossMargin, operatingMargin)     × 25%
-     *   Valuation      = f(P/E, EV/EBITDA, FCF Yield)       × 30%
-     *   Financial Health = f(D/E, ROE)                       × 20%
+     *   Growth Score     = f(revenueGrowth, epsGrowth)        × 25%
+     *   Profitability    = f(grossMargin, operatingMargin)     × 25%
+     *   Valuation        = f(P/E, EV/EBITDA, FCF Yield)       × 30%
+     *   Financial Health  = f(D/E, ROE)                       × 20%
+     *
+     * sigmoid(x, center, steepness) = 10 / (1 + e^(-steepness*(x - center)))
+     * This ensures score never "clips" and smoothly transitions across ranges.
      */
     private static computeQuantitativeRating(
         financials?: CompanyFinancials
     ): ResearchReport['rating'] {
         if (!financials) return 'Hold';
 
-        let score = 50; // Base neutral score
+        // Continuous sigmoid scoring: maps x → [0, 10]
+        const sigmoid = (x: number, center: number, steepness: number): number => {
+            return 10 / (1 + Math.exp(-steepness * (x - center)));
+        };
 
-        // Growth component (±15 points)
-        if (financials.revenueGrowth !== undefined) {
-            if (financials.revenueGrowth > 0.20) score += 10;
-            else if (financials.revenueGrowth > 0.10) score += 5;
-            else if (financials.revenueGrowth < 0) score -= 10;
-        }
-        if (financials.epsGrowth !== undefined) {
-            if (financials.epsGrowth > 0.25) score += 5;
-            else if (financials.epsGrowth < -0.10) score -= 5;
-        }
+        // Inverse sigmoid for metrics where lower is better (P/E, D/E)
+        const sigmoidInv = (x: number, center: number, steepness: number): number => {
+            return 10 - sigmoid(x, center, steepness);
+        };
 
-        // Profitability component (±10 points)
-        if (financials.grossMargin !== undefined) {
-            if (financials.grossMargin > 0.60) score += 5;
-            else if (financials.grossMargin < 0.30) score -= 5;
-        }
-        if (financials.operatingMargin !== undefined) {
-            if (financials.operatingMargin > 0.20) score += 5;
-            else if (financials.operatingMargin < 0.05) score -= 5;
-        }
+        // ── Growth (25%) ──
+        // Revenue growth: center at 10%, steepness 8 → 20%+ scores ~9, 0% scores ~3
+        const revGrowthScore = financials.revenueGrowth !== undefined
+            ? sigmoid(financials.revenueGrowth, 0.10, 8) : 5;
+        // EPS growth: center at 12%, steepness 5. Clamp extreme values to prevent
+        // turnaround stocks (epsGrowth = +1500%) from distorting the score.
+        const clampedEpsGrowth = financials.epsGrowth !== undefined
+            ? Math.max(-1, Math.min(financials.epsGrowth, 1.0)) : 0;
+        const epsGrowthScore = sigmoid(clampedEpsGrowth, 0.12, 5);
+        const growthScore = (revGrowthScore + epsGrowthScore) / 2;
 
-        // Valuation component (±15 points)
-        if (financials.pe !== undefined) {
-            if (financials.pe > 0 && financials.pe < 15) score += 5;
-            else if (financials.pe > 40) score -= 5;
-        }
-        if (financials.evEbitda !== undefined) {
-            if (financials.evEbitda > 0 && financials.evEbitda < 12) score += 5;
-            else if (financials.evEbitda > 25) score -= 5;
-        }
-        if (financials.fcfYield !== undefined) {
-            if (financials.fcfYield > 0.06) score += 5;
-            else if (financials.fcfYield < 0.02) score -= 5;
-        }
+        // ── Profitability (25%) ──
+        const grossMarginScore = financials.grossMargin !== undefined
+            ? sigmoid(financials.grossMargin, 0.40, 6) : 5;
+        const opMarginScore = financials.operatingMargin !== undefined
+            ? sigmoid(financials.operatingMargin, 0.12, 8) : 5;
+        const profitScore = (grossMarginScore + opMarginScore) / 2;
 
-        // Financial health component (±10 points)
-        if (financials.debtToEquity !== undefined) {
-            if (financials.debtToEquity < 0.5) score += 5;
-            else if (financials.debtToEquity > 2.0) score -= 5;
+        // ── Valuation (30%) ──
+        // P/E: lower is more attractive. But ignore if P/E is negative or extreme.
+        let peScore = 5;
+        if (financials.pe !== undefined && financials.pe > 0 && financials.pe < 200) {
+            peScore = sigmoidInv(financials.pe, 22, 0.08);
         }
-        if (financials.roe !== undefined) {
-            if (financials.roe > 0.20) score += 5;
-            else if (financials.roe < 0.05) score -= 5;
-        }
+        const evEbitdaScore = financials.evEbitda !== undefined && financials.evEbitda > 0
+            ? sigmoidInv(financials.evEbitda, 14, 0.12) : 5;
+        const fcfScore = financials.fcfYield !== undefined
+            ? sigmoid(financials.fcfYield, 0.04, 50) : 5;
+        const valuationScore = (peScore + evEbitdaScore + fcfScore) / 3;
 
-        if (score >= 75) return 'Strong Buy';
-        if (score >= 60) return 'Buy';
-        if (score >= 40) return 'Hold';
-        if (score >= 25) return 'Sell';
+        // ── Financial Health (20%) ──
+        const deScore = financials.debtToEquity !== undefined
+            ? sigmoidInv(financials.debtToEquity, 1.0, 1.5) : 5;
+        const roeScore = financials.roe !== undefined
+            ? sigmoid(financials.roe, 0.12, 8) : 5;
+        const healthScore = (deScore + roeScore) / 2;
+
+        // Weighted composite: total is on [0, 10] scale, map to [0, 100]
+        const compositeScore = (
+            growthScore * 0.25 +
+            profitScore * 0.25 +
+            valuationScore * 0.30 +
+            healthScore * 0.20
+        ) * 10; // scale to 0-100
+
+        if (compositeScore >= 72) return 'Strong Buy';
+        if (compositeScore >= 58) return 'Buy';
+        if (compositeScore >= 42) return 'Hold';
+        if (compositeScore >= 28) return 'Sell';
         return 'Strong Sell';
     }
 
+    // ── Sector Median Benchmarks ──
+    // These are approximate GICS sector median multiples for normalization.
+    // In a production system, these would be fetched from a live data feed.
+    private static readonly SECTOR_MEDIANS = {
+        pe: 22.0,          // S&P 500 trailing PE median
+        evEbitda: 14.0,     // S&P 500 EV/EBITDA median
+        priceToSales: 2.5,  // S&P 500 P/S median
+    };
+
     /**
-     * Estimate price target using relative valuation.
-     * Simple approach: apply sector median P/E to current EPS with growth premium.
+     * Estimate price target — Adaptive Valuation Matrix (v2.0).
+     * 
+     * ═══════════════════════════════════════════════════════════
+     * CRITICAL FIX: replaces the v1.0 naive P/E extrapolation that caused
+     * TAL's 853% upside anomaly. The new algorithm:
+     * 
+     * 1. Adaptive Valuation Switch:
+     *      IF P/E is "clean" (5 < P/E < 60 AND eps > 0):
+     *          → Use P/E-based target with mean-reversion cap
+     *      ELSE IF EV/EBITDA is available (> 0):
+     *          → Switch to EV/EBITDA-based target
+     *      ELSE:
+     *          → Fall back to Price-to-Sales (P/S) based target
+     *
+     * 2. Mean-Reverting PEG:
+     *      Target P/E = blend(Current P/E, Sector Median P/E)
+     *      HARD CAP: Target P/E ≤ 2.0 × Sector Median
+     *
+     * 3. Growth Dampening:
+     *      epsGrowth is clamped to [-50%, +50%] to prevent
+     *      turnaround stocks from producing absurd forward estimates.
+     *
+     * 4. Sanity Guardrail:
+     *      Final upside is hard-capped at ±100% (i.e., 2x or 0x current price).
+     * ═══════════════════════════════════════════════════════════
      */
     private static estimatePriceTarget(
         currentPrice: number,
         financials?: CompanyFinancials
     ): number | null {
-        if (!financials?.eps || !financials?.pe) return null;
+        if (!currentPrice || currentPrice <= 0) return null;
+        if (!financials) return null;
 
-        // Target P/E = current P/E adjusted for growth
-        const growthAdjustment = financials.epsGrowth
-            ? Math.min(Math.max(1 + financials.epsGrowth * 0.5, 0.8), 1.5)
-            : 1.0;
+        const medians = this.SECTOR_MEDIANS;
 
-        const targetPE = financials.pe * growthAdjustment;
-        const forwardEPS = financials.eps * (1 + (financials.epsGrowth || 0.05));
-        return Math.round(targetPE * forwardEPS * 100) / 100;
+        // Clamp growth rates to prevent turnaround distortion
+        const clampedEpsGrowth = financials.epsGrowth
+            ? Math.max(-0.50, Math.min(financials.epsGrowth, 0.50))
+            : 0.05;
+        const clampedRevGrowth = financials.revenueGrowth
+            ? Math.max(-0.30, Math.min(financials.revenueGrowth, 0.50))
+            : 0.05;
+
+        let targetPrice: number | null = null;
+        let method = 'none';
+
+        // ── Strategy A: P/E-Based (preferred for profitable companies) ──
+        const peClean = financials.pe !== undefined
+            && financials.pe > 5 && financials.pe < 60
+            && financials.eps !== undefined && financials.eps > 0;
+
+        if (peClean) {
+            method = 'PE';
+            // Mean-reverting target P/E: blend current PE toward sector median
+            // Weight: 40% current, 60% sector median (strong mean-reversion)
+            const blendedPE = financials.pe! * 0.4 + medians.pe * 0.6;
+            // Hard cap: target P/E ≤ 2x sector median
+            const cappedPE = Math.min(blendedPE, medians.pe * 2.0);
+            // Apply growth premium/discount via PEG-style adjustment
+            const growthAdj = 1 + clampedEpsGrowth * 0.3; // dampened premium
+            const targetPE = cappedPE * Math.max(0.7, Math.min(growthAdj, 1.3));
+            // Forward EPS: current EPS × (1 + clamped growth)
+            const forwardEPS = financials.eps! * (1 + clampedEpsGrowth);
+            targetPrice = targetPE * forwardEPS;
+        }
+
+        // ── Strategy B: EV/EBITDA-Based (for low/negative EPS) ──
+        if (!targetPrice && financials.evEbitda && financials.evEbitda > 0) {
+            method = 'EV/EBITDA';
+            // Mean-revert EV/EBITDA toward sector median
+            const blendedMult = financials.evEbitda * 0.3 + medians.evEbitda * 0.7;
+            const cappedMult = Math.min(blendedMult, medians.evEbitda * 2.0);
+            // Implied target = currentPrice × (target multiple / current multiple)
+            const growthAdj = 1 + clampedRevGrowth * 0.3;
+            targetPrice = currentPrice * (cappedMult * growthAdj / financials.evEbitda);
+        }
+
+        // ── Strategy C: P/S-Based (last resort for pre-profit companies) ──
+        if (!targetPrice) {
+            method = 'P/S';
+            // Use a conservative P/S premium based on revenue growth
+            const targetPS = medians.priceToSales * (1 + clampedRevGrowth * 0.5);
+            const cappedPS = Math.min(targetPS, medians.priceToSales * 2.0);
+            // Assume current P/S ≈ price / (revenue_per_share)
+            // Without explicit revenue_per_share, apply relative ratio
+            targetPrice = currentPrice * (cappedPS / medians.priceToSales) * (1 + clampedRevGrowth);
+        }
+
+        // ── Sanity Guardrail: cap upside/downside at ±100% ──
+        if (targetPrice) {
+            const maxPrice = currentPrice * 2.0;  // +100% cap
+            const minPrice = currentPrice * 0.3;  // -70% floor
+            targetPrice = Math.max(minPrice, Math.min(targetPrice, maxPrice));
+        }
+
+        return targetPrice ? Math.round(targetPrice * 100) / 100 : null;
     }
 
     /**

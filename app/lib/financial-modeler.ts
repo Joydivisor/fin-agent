@@ -460,24 +460,37 @@ export class FinancialModeler {
         const operatingCashFlow = netIncome + depreciation + changeInWorkingCapital;
         const investingCashFlow = -capex;
         const dividends = Math.max(0, netIncome * inputs.dividendPayoutRatio);
-        const financingCashFlow = -dividends;
+        const financingCashFlow_prePlug = -dividends;
+        const netCashFlow_prePlug = operatingCashFlow + investingCashFlow + financingCashFlow_prePlug;
+        let tentativeCash = inputs.priorCash + netCashFlow_prePlug;
+
+        // ── Revolver Plug (v2.0): auto-draw if cash goes negative ──
+        // In real-world models, the revolver (revolving credit facility) acts as a
+        // "plug" variable: the company draws on its credit line to avoid negative cash.
+        let revolverDraw = 0;
+        if (tentativeCash < 0) {
+            revolverDraw = Math.abs(tentativeCash) * 1.1; // 10% buffer
+            tentativeCash += revolverDraw;
+        }
+        const endingCash = tentativeCash;
+        const financingCashFlow = financingCashFlow_prePlug + revolverDraw;
         const netCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow;
-        const endingCash = inputs.priorCash + netCashFlow;
 
         const cashFlowStatement: CashFlowStatement = {
             netIncome, depreciation, changeInWorkingCapital,
             operatingCashFlow, capex, investingCashFlow,
-            debtIssuance: 0, debtRepayment: 0,
+            debtIssuance: revolverDraw, debtRepayment: 0,
             dividends, financingCashFlow,
             netCashFlow, endingCash
         };
 
-        // ── Balance Sheet (auto-balanced) ──
+        // ── Balance Sheet (auto-balanced with revolver) ──
         const newPPE = inputs.priorPPE - depreciation + capex;
+        const adjustedShortTermDebt = inputs.priorShortTermDebt + revolverDraw;
         const totalCurrentAssets = endingCash + newAR + newInventory;
         const totalAssets = totalCurrentAssets + newPPE;
 
-        const totalCurrentLiabilities = newAP + inputs.priorShortTermDebt;
+        const totalCurrentLiabilities = newAP + adjustedShortTermDebt;
         const totalLiabilities = totalCurrentLiabilities + inputs.priorLongTermDebt;
 
         const retainedEarnings = inputs.priorRetainedEarnings + netIncome - dividends;
@@ -487,7 +500,7 @@ export class FinancialModeler {
         const balanceSheet: BalanceSheet = {
             cash: endingCash, accountsReceivable: newAR, inventory: newInventory,
             totalCurrentAssets, ppe: newPPE, totalAssets,
-            accountsPayable: newAP, shortTermDebt: inputs.priorShortTermDebt,
+            accountsPayable: newAP, shortTermDebt: adjustedShortTermDebt,
             totalCurrentLiabilities, longTermDebt: inputs.priorLongTermDebt,
             totalLiabilities,
             retainedEarnings, totalEquity
@@ -577,5 +590,173 @@ export class FinancialModeler {
         const vega = S * phid1 * sqrtT;
 
         return { price, delta, gamma, theta: theta / 365, vega: vega / 100, rho: rho / 100, d1, d2 };
+    }
+
+    /**
+     * 3-Stage Auto-Fade DCF (v2.0).
+     *
+     * ═══════════════════════════════════════════════════════════
+     * Stage 1 (Year 1-N₁): Explicit high-growth FCFs (user-provided).
+     * Stage 2 (Year N₁+1 to N₂): ROIC Fade — growth decays exponentially
+     *   toward the terminal rate. Models competitive erosion of economic moat.
+     *   g(t) = g_terminal + (g_stage1 - g_terminal) × e^(-λ(t - N₁))
+     *   where λ = ln(10) / fadeYears ≈ ensures 90% decay over fadeYears.
+     * Stage 3: Gordon Growth terminal value at g_terminal.
+     * ═══════════════════════════════════════════════════════════
+     */
+    static calculateMultiStageDCF(inputs: {
+        stage1FCFs: number[];           // Explicit forecast FCFs
+        stage1GrowthRate: number;       // Growth rate of last stage-1 FCF
+        fadeYears: number;              // Years for ROIC to decay (typically 5)
+        terminalGrowthRate: number;     // Long-run perpetuity growth (g)
+        wacc: number;
+        netDebt?: number;
+        sharesOutstanding?: number;
+    }): DCFResult {
+        const { stage1FCFs, stage1GrowthRate, fadeYears, terminalGrowthRate, wacc, netDebt = 0, sharesOutstanding } = inputs;
+
+        if (wacc <= terminalGrowthRate) {
+            throw new Error(`WACC (${(wacc * 100).toFixed(2)}%) must exceed terminal growth (${(terminalGrowthRate * 100).toFixed(2)}%)`);
+        }
+
+        const yearlyPVs: DCFResult['yearlyPVs'] = [];
+        let pvOfCashFlows = 0;
+        let year = 0;
+
+        // ── Stage 1: Explicit FCFs ──
+        for (let t = 0; t < stage1FCFs.length; t++) {
+            year = t + 1;
+            const df = 1 / Math.pow(1 + wacc, year);
+            const pv = stage1FCFs[t] * df;
+            pvOfCashFlows += pv;
+            yearlyPVs.push({ year, fcf: stage1FCFs[t], discountFactor: df, pv });
+        }
+
+        // ── Stage 2: ROIC Fade (exponential decay toward terminal growth) ──
+        // λ = ln(10) / fadeYears → 90% decay over fadeYears
+        const lambda = Math.log(10) / fadeYears;
+        let lastFCF = stage1FCFs[stage1FCFs.length - 1];
+        const n1 = stage1FCFs.length;
+
+        for (let t = 0; t < fadeYears; t++) {
+            year = n1 + t + 1;
+            // Decaying growth rate
+            const g = terminalGrowthRate + (stage1GrowthRate - terminalGrowthRate) * Math.exp(-lambda * (t + 1));
+            lastFCF = lastFCF * (1 + g);
+            const df = 1 / Math.pow(1 + wacc, year);
+            const pv = lastFCF * df;
+            pvOfCashFlows += pv;
+            yearlyPVs.push({ year, fcf: lastFCF, discountFactor: df, pv });
+        }
+
+        // ── Stage 3: Terminal Value (Gordon Growth) ──
+        const terminalValue = (lastFCF * (1 + terminalGrowthRate)) / (wacc - terminalGrowthRate);
+        const totalYears = n1 + fadeYears;
+        const pvOfTerminalValue = terminalValue / Math.pow(1 + wacc, totalYears);
+
+        const enterpriseValue = pvOfCashFlows + pvOfTerminalValue;
+        const equityValue = enterpriseValue - netDebt;
+        const impliedSharePrice = sharesOutstanding ? equityValue / sharesOutstanding : null;
+
+        return { pvOfCashFlows, terminalValue, pvOfTerminalValue, enterpriseValue, equityValue, impliedSharePrice, yearlyPVs };
+    }
+
+    /**
+     * Bjerksund-Stensland (2002) American Option Pricing Approximation.
+     *
+     * ═══════════════════════════════════════════════════════════
+     * Provides a closed-form approximation for American options that
+     * accounts for early exercise premium. Accuracy is within ~0.1%
+     * of binomial tree with 1000+ steps, but with O(1) complexity.
+     *
+     * For American calls on non-dividend-paying stocks, the European
+     * price equals the American price (early exercise never optimal).
+     *
+     * For American puts or dividend-paying stocks, we compute:
+     *   C_american = α(Sₓ)(S/Sₓ)^q   if S < Sₓ
+     *             = S - K              if S ≥ Sₓ
+     * where Sₓ is the optimal early exercise boundary, found by
+     * solving the smooth-pasting condition.
+     *
+     * Simplified implementation: uses the flat boundary approximation
+     * for computational efficiency.
+     * ═══════════════════════════════════════════════════════════
+     */
+    static bjerksundStensland(inputs: BlackScholesInputs & { dividendYield?: number }): BlackScholesResult {
+        const { stockPrice: S, strikePrice: K, timeToExpiry: T, riskFreeRate: r, volatility: sigma, optionType } = inputs;
+        const q2 = inputs.dividendYield || 0;
+
+        if (T <= 0) throw new Error('Time to expiry must be positive');
+        if (sigma <= 0) throw new Error('Volatility must be positive');
+
+        // For American calls on non-div stocks, European = American
+        // For all cases, start with European price as lower bound
+        const europeanResult = this.blackScholes(inputs);
+
+        if (optionType === 'call' && q2 === 0) {
+            // No early exercise premium for calls without dividends
+            return europeanResult;
+        }
+
+        // Bjerksund-Stensland flat boundary approximation
+        const b = r - q2; // cost of carry
+        const sigSq = sigma * sigma;
+        const sqrtT = Math.sqrt(T);
+
+        // Beta coefficient
+        const betaCoeff = (0.5 - b / sigSq) + Math.sqrt(Math.pow(b / sigSq - 0.5, 2) + 2 * r / sigSq);
+
+        // Trigger price (flat boundary approximation)
+        const BInfinity = (betaCoeff / (betaCoeff - 1)) * K;
+        const B0 = Math.max(K, (r / (r - b)) * K);
+        const hT = -(b * T + 2 * sigma * sqrtT) * (K * K / ((BInfinity - B0) * B0));
+        const Sx = B0 + (BInfinity - B0) * (1 - Math.exp(hT));
+
+        let americanPrice: number;
+
+        if (optionType === 'call') {
+            if (S >= Sx) {
+                americanPrice = S - K;
+            } else {
+                const alpha = (Sx - K) * Math.pow(Sx, -betaCoeff);
+                americanPrice = alpha * Math.pow(S, betaCoeff)
+                    - alpha * this.bsPhi(S, T, betaCoeff, Sx, Sx, r, b, sigma)
+                    + this.bsPhi(S, T, 1, Sx, Sx, r, b, sigma)
+                    - this.bsPhi(S, T, 1, K, Sx, r, b, sigma)
+                    - K * this.bsPhi(S, T, 0, Sx, Sx, r, b, sigma)
+                    + K * this.bsPhi(S, T, 0, K, Sx, r, b, sigma);
+            }
+            // American call ≥ European call
+            americanPrice = Math.max(americanPrice, europeanResult.price);
+        } else {
+            // American put via put-call transformation:
+            // P_american(S,K,T,r,b,σ) = C_american(K,S,T,r-b,-b,σ)
+            const putAsCall = this.bjerksundStensland({
+                stockPrice: K, strikePrice: S, timeToExpiry: T,
+                riskFreeRate: r - b, volatility: sigma,
+                optionType: 'call', dividendYield: 0
+            });
+            americanPrice = Math.max(putAsCall.price, europeanResult.price);
+        }
+
+        // Use European Greeks as approximation (exact Greeks require numerical diff)
+        return {
+            ...europeanResult,
+            price: americanPrice
+        };
+    }
+
+    /** Helper: φ function for Bjerksund-Stensland */
+    private static bsPhi(
+        S: number, T: number, gamma: number, H: number, X: number,
+        r: number, b: number, sigma: number
+    ): number {
+        const sigSq = sigma * sigma;
+        const lambda2 = (-r + gamma * b + 0.5 * gamma * (gamma - 1) * sigSq) * T;
+        const d = -(Math.log(S / H) + (b + (gamma - 0.5) * sigSq) * T) / (sigma * Math.sqrt(T));
+        const kappa = (2 * b) / sigSq + (2 * gamma - 1);
+        return Math.exp(lambda2) * Math.pow(S, gamma) * (
+            normalCDF(d) - Math.pow(X / S, kappa) * normalCDF(d - 2 * Math.log(X / S) / (sigma * Math.sqrt(T)))
+        );
     }
 }

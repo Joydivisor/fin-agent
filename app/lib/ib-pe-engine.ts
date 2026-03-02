@@ -443,25 +443,32 @@ export class IBPEEngine {
     }
 
     /**
-     * Leveraged Buyout (LBO) Model.
+     * Leveraged Buyout (LBO) Model — Multi-Tranche Debt Waterfall (v2.0).
      * 
      * Mathematical framework:
      * ───────────────────────────────────────────────────────────
      * Purchase: EV = Debt + Equity
      * 
+     * v2.0 Multi-Tranche Debt Structure:
+     *   Tranche 1: Revolver (drawn as needed, SOFR-based)
+     *   Tranche 2: Senior Term Loan A (mandatory amortization)
+     *   Tranche 3: Mezzanine / Subordinated (PIK interest)
+     * 
+     * Repayment Waterfall Priority:
+     *   1. Mandatory amortization on Senior TLA
+     *   2. Cash Sweep: cashSweepPct × excess FCF → Senior first, then Mezz
+     *   3. PIK interest on Mezzanine accrues to principal
+     * 
      * Annual Free Cash Flow:
      *   FCF = EBITDA − Interest − Taxes − CapEx − ΔNWC
      * 
-     * Debt Repayment = min(FCF, Mandatory Repayment + Optional Sweep)
-     * 
      * Exit:
      *   Exit EV = Exit EBITDA × Exit Multiple
-     *   Exit Equity = Exit EV − Remaining Debt
+     *   Exit Equity = Exit EV − Total Remaining Debt
      * 
      * Returns:
      *   MOIC = Exit Equity / Initial Equity
-     *   IRR: solve for r in Equity = Exit Equity / (1+r)ⁿ
-     *        r = (Exit Equity / Equity)^(1/n) − 1
+     *   IRR: r = (MOIC)^(1/n) − 1
      * ───────────────────────────────────────────────────────────
      */
     static calculateLBO(inputs: LBOInputs): LBOResult {
@@ -474,40 +481,80 @@ export class IBPEEngine {
         const equityContribution = inputs.equityContribution ?? (enterpriseValue - debtAmount);
         const exitYear = projectedEBITDA.length;
 
-        let currentDebt = debtAmount;
+        // Multi-tranche debt allocation (v2.0)
+        // Split total debt: 10% Revolver, 60% Senior TLA, 30% Mezzanine
+        let revolverBalance = debtAmount * 0.10;
+        let seniorBalance = debtAmount * 0.60;
+        let mezzBalance = debtAmount * 0.30;
+
+        // Tranche-specific rates
+        const revolverRate = interestRate * 0.85;     // Lower spread
+        const seniorRate = interestRate;               // Base rate
+        const mezzCashRate = interestRate * 0.60;      // Lower cash pay
+        const mezzPIKRate = interestRate * 0.60;       // PIK portion
+        const cashSweepPct = 0.75;                     // 75% of excess FCF
+
         const debtSchedule: DebtScheduleYear[] = [];
         const cashFlowSummary: LBOCashFlow[] = [];
         const leverageProfile: LBOResult['leverageProfile'] = [];
 
         for (let yr = 0; yr < exitYear; yr++) {
             const ebitda = projectedEBITDA[yr];
-            const interest = currentDebt * interestRate;
+            const totalDebt = revolverBalance + seniorBalance + mezzBalance;
+
+            // Interest by tranche
+            const revolverInterest = revolverBalance * revolverRate;
+            const seniorInterest = seniorBalance * seniorRate;
+            const mezzCashInterest = mezzBalance * mezzCashRate;
+            const mezzPIKInterest = mezzBalance * mezzPIKRate;
+            const totalCashInterest = revolverInterest + seniorInterest + mezzCashInterest;
+
+            // PIK accrues to mezzanine principal
+            mezzBalance += mezzPIKInterest;
+
             const capex = ebitda * capexPercent;
             const nwcChange = ebitda * nwcChangePercent;
-            const ebt = ebitda - interest - capex - nwcChange;
+            const ebt = ebitda - totalCashInterest - capex - nwcChange;
             const taxes = Math.max(0, ebt * taxRate);
             const fcf = ebt - taxes;
 
-            // Debt repayment: mandatory first, then optional from remaining FCF
-            const mandatoryRepay = Math.min(annualDebtRepayment, currentDebt);
+            // Mandatory repayment on Senior TLA
+            const mandatoryRepay = Math.min(annualDebtRepayment, seniorBalance);
+            seniorBalance -= mandatoryRepay;
+
+            // Cash sweep: 75% of remaining FCF goes to debt repayment
             const remainingFCF = Math.max(0, fcf - mandatoryRepay);
-            const optionalRepay = Math.min(remainingFCF, currentDebt - mandatoryRepay);
-            const totalRepay = mandatoryRepay + optionalRepay;
-            const endingDebt = currentDebt - totalRepay;
+            const sweepAmount = remainingFCF * cashSweepPct;
+
+            // Waterfall: Revolver first, then Senior, then Mezz
+            let sweepRemaining = sweepAmount;
+            const revolverRepay = Math.min(sweepRemaining, revolverBalance);
+            revolverBalance -= revolverRepay;
+            sweepRemaining -= revolverRepay;
+
+            const seniorSweepRepay = Math.min(sweepRemaining, seniorBalance);
+            seniorBalance -= seniorSweepRepay;
+            sweepRemaining -= seniorSweepRepay;
+
+            const mezzRepay = Math.min(sweepRemaining, mezzBalance);
+            mezzBalance -= mezzRepay;
+
+            const totalRepay = mandatoryRepay + revolverRepay + seniorSweepRepay + mezzRepay;
+            const endingDebt = revolverBalance + seniorBalance + mezzBalance;
 
             debtSchedule.push({
                 year: yr + 1,
-                beginningDebt: currentDebt,
-                interestPayment: interest,
+                beginningDebt: totalDebt,
+                interestPayment: totalCashInterest,
                 mandatoryRepayment: mandatoryRepay,
-                optionalRepayment: optionalRepay,
+                optionalRepayment: revolverRepay + seniorSweepRepay + mezzRepay,
                 endingDebt
             });
 
             cashFlowSummary.push({
                 year: yr + 1,
                 ebitda,
-                interest,
+                interest: totalCashInterest,
                 taxes,
                 capex,
                 nwcChange,
@@ -518,16 +565,15 @@ export class IBPEEngine {
             leverageProfile.push({
                 year: yr + 1,
                 debtToEbitda: ebitda > 0 ? endingDebt / ebitda : Infinity,
-                interestCoverage: interest > 0 ? ebitda / interest : Infinity
+                interestCoverage: totalCashInterest > 0 ? ebitda / totalCashInterest : Infinity
             });
-
-            currentDebt = endingDebt;
         }
 
         // Exit calculation
         const exitEBITDA = projectedEBITDA[exitYear - 1];
         const exitEV = exitEBITDA * exitMultiple;
-        const exitEquity = exitEV - currentDebt;
+        const totalRemainingDebt = revolverBalance + seniorBalance + mezzBalance;
+        const exitEquity = exitEV - totalRemainingDebt;
 
         // Returns
         const moic = equityContribution > 0 ? exitEquity / equityContribution : 0;
@@ -551,18 +597,38 @@ export class IBPEEngine {
     }
 
     /**
-     * Comparable Company Analysis (Trading Comps).
+     * Comparable Company Analysis (Trading Comps) — with IQR Outlier Filtering (v2.0).
      * 
      * Calculates key valuation multiples for the target and peer group:
      *   - EV/Revenue
      *   - EV/EBITDA
      *   - P/E (Market Cap / Net Income)
      * 
-     * Then derives implied valuations by applying peer median multiples
-     * to the target's fundamentals.
+     * v2.0 Enhancement: IQR-Based Robust Filtering
+     * ───────────────────────────────────────────────────────────
+     * Before computing peer medians, outliers are identified using:
+     *   Q1 = 25th percentile, Q3 = 75th percentile
+     *   IQR = Q3 - Q1
+     *   Valid range = [Q1 - 1.5×IQR, Q3 + 1.5×IQR]
+     * 
+     * Peers outside this range (e.g., near-bankrupt or hyper-inflated)
+     * are excluded from median/mean calculations.
+     * ───────────────────────────────────────────────────────────
      */
     static comparableAnalysis(request: CompsRequest): CompsResult {
         const { targetSymbol, targetMetrics, peers } = request;
+
+        // IQR-based outlier filter utility
+        const filterOutliers = (values: number[]): number[] => {
+            if (values.length < 4) return values; // Not enough data for IQR
+            const sorted = [...values].sort((a, b) => a - b);
+            const q1 = sorted[Math.floor(sorted.length * 0.25)];
+            const q3 = sorted[Math.floor(sorted.length * 0.75)];
+            const iqr = q3 - q1;
+            const lower = q1 - 1.5 * iqr;
+            const upper = q3 + 1.5 * iqr;
+            return sorted.filter(v => v >= lower && v <= upper);
+        };
 
         const multipleCalcs: {
             metric: string;
@@ -596,11 +662,15 @@ export class IBPEEngine {
                 value: calcTarget(p.metrics)
             }));
 
-            const validPeerValues = peerValues
+            const rawPeerValues = peerValues
                 .map(p => p.value)
                 .filter((v): v is number => v !== null && !isNaN(v) && isFinite(v))
                 .sort((a, b) => a - b);
 
+            if (rawPeerValues.length === 0) continue;
+
+            // Apply IQR filtering to remove outliers (v2.0)
+            const validPeerValues = filterOutliers(rawPeerValues);
             if (validPeerValues.length === 0) continue;
 
             const peerMedian = validPeerValues[Math.floor(validPeerValues.length / 2)];
@@ -636,7 +706,7 @@ export class IBPEEngine {
             ? impliedValuations.reduce((s, v) => s + v.impliedEV, 0) / impliedValuations.length
             : 0;
 
-        const summary = `Comparable analysis for ${targetSymbol} against ${peers.length} peers. ` +
+        const summary = `Comparable analysis for ${targetSymbol} against ${peers.length} peers (IQR-filtered). ` +
             `Average implied EV: $${this.formatNum(avgImpliedEV)}. ` +
             (targetMetrics.enterpriseValue
                 ? `Current EV: $${this.formatNum(targetMetrics.enterpriseValue)} — ${avgImpliedEV > targetMetrics.enterpriseValue ? 'potential upside' : 'premium to peers'}.`
