@@ -83,6 +83,12 @@ export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL', lan
         fetchLatestPrices();
     }, [fetchLatestPrices]);
 
+    // AUTO RUN Smart Defaults: Run Portfolio Analysis on mount (Phase 4)
+    useEffect(() => {
+        const timer = setTimeout(() => { runAnalysis(); }, 500);
+        return () => clearTimeout(timer);
+    }, []);
+
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [optimizeResult, setOptimizeResult] = useState<any>(null);
     const [taxResult, setTaxResult] = useState<any>(null);
@@ -166,8 +172,8 @@ export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL', lan
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-violet-50 rounded-xl border border-violet-100"><PieChart size={18} className="text-violet-600" /></div>
                         <div>
-                            <h2 className="text-lg font-black text-slate-900">Wealth Management</h2>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Markowitz · Tax-Loss Harvesting · Monte Carlo</p>
+                            <h2 className="text-lg font-black text-slate-900">{t.title}</h2>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.subtitle}</p>
                         </div>
                     </div>
                 </div>

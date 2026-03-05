@@ -133,15 +133,15 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL', lang = 'Z
                     sharesOutstanding: sharesM
                 }));
 
-                // Update BS inputs
-                setBsInputs(prev => ({
-                    ...prev,
-                    stockPrice: price,
-                    strikePrice: price * 1.05 // default slightly out of money
-                }));
+                // Default slightly out of money
+                setBsInputs(prev => ({ ...prev, stockPrice: price, strikePrice: price * 1.05 }));
+
+                // AUTO RUN SMART DEFAULTS (Phase 4 Retail-Friendly UX)
+                setTimeout(() => { computeDCF(); computeWACC(); computeBS(); computeTS(); }, 300);
 
             } catch (error) {
                 console.error("Error fetching fundamentals in DCFCalculator:", error);
+                setTimeout(() => { computeDCF(); computeWACC(); computeBS(); computeTS(); }, 300);
             }
             setIsComputing(false);
         };
@@ -310,8 +310,14 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL', lang = 'Z
                                 ))}
                             </div>
                             <div className="grid grid-cols-4 gap-4">
-                                <InputField label="WACC" value={dcfInputs.wacc} onChange={v => setDcfInputs({ ...dcfInputs, wacc: v })} suffix="%" step={0.005} />
-                                <InputField label="Terminal Growth (g)" value={dcfInputs.terminalGrowth} onChange={v => setDcfInputs({ ...dcfInputs, terminalGrowth: v })} suffix="%" step={0.005} />
+                                <div className="group relative">
+                                    <InputField label="WACC" value={dcfInputs.wacc} onChange={v => setDcfInputs({ ...dcfInputs, wacc: v })} suffix="%" step={0.005} />
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-indigo-900 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Weighted Average Cost of Capital. Higher WACC = Higher risk, lower present value.</div>
+                                </div>
+                                <div className="group relative">
+                                    <InputField label="Terminal Growth (g)" value={dcfInputs.terminalGrowth} onChange={v => setDcfInputs({ ...dcfInputs, terminalGrowth: v })} suffix="%" step={0.005} />
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-indigo-900 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Expected perpetual growth rate after year 5. Should be close to long-term GDP growth (2-3%).</div>
+                                </div>
                                 <InputField label="Net Debt" value={dcfInputs.netDebt} onChange={v => setDcfInputs({ ...dcfInputs, netDebt: v })} />
                                 <InputField label="Shares Outstanding" value={dcfInputs.sharesOutstanding} onChange={v => setDcfInputs({ ...dcfInputs, sharesOutstanding: v })} suffix="M" />
                             </div>

@@ -96,15 +96,32 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL', lang = '
     }, [symbol]);
 
     const generateReport = useCallback(async () => {
+        if (!symbol) return;
         setIsGenerating(true);
         setReportText('');
         setReportMeta(null);
+        abortRef.current = new AbortController();
+
+        let targetTicker = symbol.toUpperCase().trim();
+
         try {
-            abortRef.current = new AbortController();
+            // DEEP COMPONENT SEARCH: Check if it's potentially a non-ticker (e.g. Chinese name or company name)
+            // If it contains non-ASCII characters or is a plain name, resolve it first.
+            if (/[^\x00-\x7F]/g.test(targetTicker) || targetTicker.length > 5) {
+                const searchRes = await fetch(`/api/search?q=${encodeURIComponent(targetTicker)}`);
+                if (searchRes.ok) {
+                    const searchData = await searchRes.json();
+                    if (searchData.results && searchData.results.length > 0) {
+                        targetTicker = searchData.results[0].symbol;
+                        setSymbol(targetTicker); // Update UI to show the resolved ticker
+                    }
+                }
+            }
+
             const res = await fetch('/api/equity-research', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    symbol, reportType: 'full_report',
+                    symbol: targetTicker, reportType: 'full_report',
                     currentPrice,
                     financials
                 }),

@@ -115,8 +115,12 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL', lang = 'Z
                     companyName: activeSymbol
                 }));
 
+                // AUTO RUN SMART DEFAULTS (Phase 4 Retail-Friendly UX)
+                setTimeout(() => { computeDealScore(); computeLBO(); generateCIM(); }, 300);
+
             } catch (error) {
                 console.error("Error fetching fundamentals in DealWorkspace:", error);
+                setTimeout(() => { computeDealScore(); computeLBO(); generateCIM(); }, 300);
             }
             setIsComputing(false);
         };
@@ -317,10 +321,19 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL', lang = 'Z
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                             <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Calculator size={14} className="text-amber-500" /> {t.lbo_params}</h3>
                             <div className="grid grid-cols-5 gap-3">
-                                <InputField label="Enterprise Value" value={lboInputs.enterpriseValue} onChange={v => setLboInputs({ ...lboInputs, enterpriseValue: v })} suffix="M" />
-                                <InputField label="Debt Amount" value={lboInputs.debtAmount} onChange={v => setLboInputs({ ...lboInputs, debtAmount: v })} suffix="M" />
+                                <div className="group relative">
+                                    <InputField label="Enterprise Value" value={lboInputs.enterpriseValue} onChange={v => setLboInputs({ ...lboInputs, enterpriseValue: v })} suffix="M" />
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Total cost to acquire the company (Equity + Debt - Cash).</div>
+                                </div>
+                                <div className="group relative">
+                                    <InputField label="Debt Amount" value={lboInputs.debtAmount} onChange={v => setLboInputs({ ...lboInputs, debtAmount: v })} suffix="M" />
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Amount borrowed to fund the acquisition. More debt = higher risk but potentially higher IRR.</div>
+                                </div>
                                 <InputField label="Interest Rate" value={lboInputs.interestRate} onChange={v => setLboInputs({ ...lboInputs, interestRate: v })} suffix="%" step={0.005} />
-                                <InputField label="Exit Multiple" value={lboInputs.exitMultiple} onChange={v => setLboInputs({ ...lboInputs, exitMultiple: v })} suffix="x" step={0.5} />
+                                <div className="group relative">
+                                    <InputField label="Exit Multiple" value={lboInputs.exitMultiple} onChange={v => setLboInputs({ ...lboInputs, exitMultiple: v })} suffix="x" step={0.5} />
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Assumed EV/EBITDA multiple when selling the company in year 5.</div>
+                                </div>
                                 <InputField label="Annual Repay" value={lboInputs.annualDebtRepayment} onChange={v => setLboInputs({ ...lboInputs, annualDebtRepayment: v })} suffix="M" />
                             </div>
                             <div className="mt-3">

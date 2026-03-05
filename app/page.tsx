@@ -32,7 +32,8 @@ const TRANSLATIONS = {
         trans_source: '原文来源', trans_read_original: '跳转原文链接', tactical_title: 'AGENT 战术分析',
         flow_in: '流入', flow_out: '流出', cumulative: '累计净量', click_expand: '点击放大',
         scroll_zoom: '滚轮缩放', chat_thinking: '正在思考...', status: 'SYSTEM ONLINE', region: 'GLOBAL',
-        no_alerts: '系统运行正常，当前暂无异动预警。', archive_clear: '归档并清空'
+        no_alerts: '系统运行正常，当前暂无异动预警。', archive_clear: '归档并清空',
+        no_news: '暂无资讯'
     },
     EN: {
         nav: ['Workspaces', 'News', 'Alerts', 'Memory', 'Weekly Report', 'Help', 'Command Center'],
@@ -46,7 +47,8 @@ const TRANSLATIONS = {
         trans_source: 'Source', trans_read_original: 'Original', tactical_title: 'TACTICAL',
         flow_in: 'In', flow_out: 'Out', cumulative: 'Cum', click_expand: 'Expand',
         scroll_zoom: 'Zoom', chat_thinking: 'Thinking...', status: 'SYSTEM ONLINE', region: 'GLOBAL',
-        no_alerts: 'System stable. No active alerts.', archive_clear: 'Archive & Clear'
+        no_alerts: 'System stable. No active alerts.', archive_clear: 'Archive & Clear',
+        no_news: 'No news available'
     },
     JA: {
         nav: ['ワークスペース', 'ニュース', 'アラート', 'メモリー', '週次レポート', 'ヘルプ', 'コマンドセンター'],
@@ -59,7 +61,8 @@ const TRANSLATIONS = {
         trans_title: 'AI 翻訳', trans_source: 'ソース', trans_read_original: '原文リンク',
         tactical_title: '戦術分析', flow_in: '流入', flow_out: '流出', cumulative: '累積',
         click_expand: '拡大', scroll_zoom: 'ズーム', chat_thinking: '考え中...', status: 'オンライン',
-        region: 'グローバル', no_alerts: 'システムは正常です。アラートはありません。', archive_clear: 'アーカイブして消去'
+        region: 'グローバル', no_alerts: 'システムは正常です。アラートはありません。', archive_clear: 'アーカイブして消去',
+        no_news: 'ニュースはありません'
     },
     KO: {
         nav: ['워크스페이스', '뉴스', '알림', '메모리', '주간 보고서', '도움말', '지휘 센터'],
@@ -72,7 +75,8 @@ const TRANSLATIONS = {
         trans_title: 'AI 번역', trans_source: '출처', trans_read_original: '원문 링크',
         tactical_title: '전술 분석', flow_in: '유입', flow_out: '유출', cumulative: '누적',
         click_expand: '확대', scroll_zoom: '줌', chat_thinking: '생각 중...', status: '온라인',
-        region: '글로벌', no_alerts: '시스템이 안정적입니다. 알림이 없습니다.', archive_clear: '보관 및 지우기'
+        region: '글로벌', no_alerts: '시스템이 안정적입니다. 알림이 없습니다.', archive_clear: '보관 및 지우기',
+        no_news: '뉴스 없음'
     }
 };
 
@@ -594,7 +598,22 @@ export default function FinAgent() {
         finally { setIsLoadingDetail(false); }
     };
 
-    const performSearch = async () => { if (!searchQuery) return; setIsSearching(true); try { const res = await fetch(`/api/search?q=${searchQuery}`); setSearchResults(await res.json()); } catch (e) { setSearchResults([]); } finally { setIsSearching(false); } };
+    const performSearch = async (isEnter = false) => {
+        if (!searchQuery) return;
+        setIsSearching(true);
+        try {
+            const res = await fetch(`/api/search?q=${searchQuery}`);
+            const data = await res.json();
+            setSearchResults(data);
+            if (isEnter && Array.isArray(data) && data.length > 0) {
+                handleViewFromSearch(data[0]);
+            }
+        } catch (e) {
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
 
     const handleViewFromSearch = async (res: any) => {
         // 🌟 核心修复 1：先展示框架
@@ -1059,7 +1078,7 @@ export default function FinAgent() {
                             placeholder={t.search}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && performSearch()}
+                            onKeyDown={(e) => e.key === 'Enter' && performSearch(true)}
                         />
                         {isSearching ? <div className="absolute top-full left-0 w-full bg-white border border-slate-200 mt-2 rounded-2xl shadow-2xl py-4 px-4 text-[11px] font-bold text-indigo-500 flex items-center gap-2"><Activity size={14} className="animate-pulse" /> <span>{t.scanning}</span></div> : null}
                         {searchResults.length > 0 ? (
@@ -1529,7 +1548,22 @@ export default function FinAgent() {
                                             </div>
                                         </div>
                                     ))
-                                ) : (<div className="p-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest border border-dashed border-slate-200 rounded-xl m-2"><span>No news available</span></div>)}
+                                ) : (
+                                    <div className="p-8 flex flex-col items-center justify-center text-center border border-dashed border-slate-200 rounded-xl m-2 bg-slate-50/50">
+                                        <Search size={28} className="text-slate-300 mb-3" />
+                                        <p className="text-sm font-bold text-slate-500 mb-1">{t.no_news}</p>
+                                        <p className="text-[11px] text-slate-400 max-w-xs mb-4">You can manually invoke the AI Agent to perform a fundamental scan on this equity.</p>
+                                        <button
+                                            onClick={() => {
+                                                setStockChatInput(`Please generate a comprehensive fundamental analysis for ${selectedTicker?.symbol}.`);
+                                                setIsStockChatExpanded(true);
+                                            }}
+                                            className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-500 transition-colors"
+                                        >
+                                            AI Fundamental Scan
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </section>
                     </div>
@@ -1873,7 +1907,7 @@ export default function FinAgent() {
                                     <XAxis dataKey="normalizedTime" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} minTickGap={50} tickFormatter={formatXAxis} dy={15} />
                                     <YAxis yAxisId="left" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} tickFormatter={formatNumber} axisLine={false} tickLine={false} dx={-10} />
                                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={formatNumber} axisLine={false} tickLine={false} dx={10} />
-                                    <Tooltip cursor={{ fill: 'rgba(99,102,241,0.05)' }} contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', color: '#0f172a', fontSize: '13px', fontWeight: 'bold', borderRadius: '12px', padding: '12px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }} labelFormatter={formatXAxis} formatter={(val: number, name: string) => [formatNumber(val), name === 'netFlow' ? t.net_flow : t.cumulative]} />
+                                    <Tooltip cursor={{ fill: 'rgba(99,102,241,0.05)' }} contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', color: '#0f172a', fontSize: '13px', fontWeight: 'bold', borderRadius: '12px', padding: '12px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }} labelFormatter={formatXAxis} formatter={(val: any, name: any) => [formatNumber(val), name === 'netFlow' ? t.net_flow : t.cumulative]} />
                                     <ReferenceLine y={0} yAxisId="left" stroke={'#94a3b8'} strokeWidth={2} />
                                     <Bar yAxisId="left" dataKey="netFlow" barSize={12} radius={[3, 3, 0, 0]} isAnimationActive={false}>{zoomedChartData.map((entry: any, index: number) => (<Cell key={`cell-${index}`} fill={getFlowColor(entry.netFlow)} />))}</Bar>
                                     <Line yAxisId="right" type="monotone" dataKey="cumulativeFlow" stroke={'#64748b'} dot={false} strokeWidth={3} isAnimationActive={false} connectNulls={true} />
