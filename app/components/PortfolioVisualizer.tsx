@@ -11,13 +11,41 @@ import {
     AreaChart, Area, ReferenceLine
 } from 'recharts';
 
-interface Props { onBack: () => void; activeSymbol?: string; }
+interface Props { onBack: () => void; activeSymbol?: string; lang?: 'ZH' | 'EN' | 'JA' | 'KO'; }
 
 type TabId = 'overview' | 'optimize' | 'tax_harvest' | 'monte_carlo';
 
-export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL' }: Props) {
+const PV_I18N: Record<string, Record<string, string>> = {
+    ZH: {
+        title: 'Wealth Management', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
+        tab_overview: '持仓分析', tab_optimize: '前沿优化', tab_tax: 'Tax Harvest', tab_mc: '蒙特卡洛',
+        holdings: '持仓明细', prompt: '点击上方标签开始分析', prompt_sub: '选择分析模式后，系统将自动计算您的投资组合指标',
+        no_harvest: 'No tax-loss harvesting opportunities found. All positions are in profit.'
+    },
+    EN: {
+        title: 'Wealth Management', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
+        tab_overview: 'Portfolio Analysis', tab_optimize: 'Frontier Optimization', tab_tax: 'Tax Harvest', tab_mc: 'Monte Carlo',
+        holdings: 'Holdings Detail', prompt: 'Click a tab above to start analysis', prompt_sub: 'The system will automatically compute your portfolio metrics',
+        no_harvest: 'No tax-loss harvesting opportunities found. All positions are in profit.'
+    },
+    JA: {
+        title: 'ウェルスマネジメント', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
+        tab_overview: 'ポートフォリオ分析', tab_optimize: 'フロンティア最適化', tab_tax: 'Tax Harvest', tab_mc: 'モンテカルロ',
+        holdings: '保有明細', prompt: 'タブをクリックして分析を開始', prompt_sub: 'ポートフォリオ指標を自動計算します',
+        no_harvest: '税損失収穫の機会はありません。'
+    },
+    KO: {
+        title: '자산 관리', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
+        tab_overview: '포트폴리오 분석', tab_optimize: '프론티어 최적화', tab_tax: 'Tax Harvest', tab_mc: '몬테카를로',
+        holdings: '보유 상세', prompt: '탭을 클릭하여 분석 시작', prompt_sub: '시스템이 포트폴리오 지표를 자동 계산합니다',
+        no_harvest: '세금 손실 수확 기회가 없습니다.'
+    },
+};
+
+export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL', lang = 'ZH' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
     const [isComputing, setIsComputing] = useState(false);
+    const t = PV_I18N[lang] || PV_I18N.ZH;
 
     const [holdings, setHoldings] = useState([
         { symbol: 'AAPL', shares: 100, currentPrice: 185, costBasis: 150, expectedReturn: 0.12, volatility: 0.25, assetClass: 'equity' as const, holdingDays: 400 },
@@ -124,10 +152,10 @@ export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL' }: P
     );
 
     const tabs: { id: TabId; label: string; icon: React.ReactNode; onClick: () => void }[] = [
-        { id: 'overview', label: '持仓分析', icon: <PieChart size={14} />, onClick: runAnalysis },
-        { id: 'optimize', label: '前沿优化', icon: <TrendingUp size={14} />, onClick: runOptimize },
-        { id: 'tax_harvest', label: 'Tax Harvest', icon: <Leaf size={14} />, onClick: runTaxHarvest },
-        { id: 'monte_carlo', label: '蒙特卡洛', icon: <BarChart3 size={14} />, onClick: runMonteCarlo },
+        { id: 'overview', label: t.tab_overview, icon: <PieChart size={14} />, onClick: runAnalysis },
+        { id: 'optimize', label: t.tab_optimize, icon: <TrendingUp size={14} />, onClick: runOptimize },
+        { id: 'tax_harvest', label: t.tab_tax, icon: <Leaf size={14} />, onClick: runTaxHarvest },
+        { id: 'monte_carlo', label: t.tab_mc, icon: <BarChart3 size={14} />, onClick: runMonteCarlo },
     ];
 
     return (
@@ -160,7 +188,7 @@ export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL' }: P
             <div className="flex-1 p-6 space-y-5">
                 {/* Holdings Table */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                    <h3 className="text-sm font-black text-slate-800 mb-3">持仓明细</h3>
+                    <h3 className="text-sm font-black text-slate-800 mb-3">{t.holdings}</h3>
                     <table className="w-full text-[11px]">
                         <thead><tr className="text-slate-400 font-bold uppercase tracking-wider">
                             <th className="px-3 py-2 text-left">Symbol</th><th className="px-3 py-2">Shares</th>
@@ -318,7 +346,7 @@ export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL' }: P
                         ) : (
                             <div className="p-8 text-center bg-white border border-slate-200 rounded-2xl">
                                 <Shield size={32} className="text-emerald-400 mx-auto mb-3" />
-                                <p className="text-sm text-slate-500 font-bold">No tax-loss harvesting opportunities found. All positions are in profit.</p>
+                                <p className="text-sm text-slate-500 font-bold">{t.no_harvest}</p>
                             </div>
                         )}
                     </>
@@ -364,8 +392,8 @@ export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL' }: P
                 {activeTab === 'overview' && !analysisResult && !isComputing && (
                     <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl">
                         <PieChart size={40} className="text-violet-300 mx-auto mb-4" />
-                        <p className="text-sm text-slate-500 font-bold mb-2">点击上方标签开始分析</p>
-                        <p className="text-[11px] text-slate-400">选择分析模式后，系统将自动计算您的投资组合指标</p>
+                        <p className="text-sm text-slate-500 font-bold mb-2">{t.prompt}</p>
+                        <p className="text-[11px] text-slate-400">{t.prompt_sub}</p>
                     </div>
                 )}
             </div>

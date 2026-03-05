@@ -3,13 +3,12 @@ import Parser from 'rss-parser';
 import yahooFinance from 'yahoo-finance2';
 
 const parser = new Parser({
-    requestOptions: {
-        follow: 5,
-        timeout: 8000, 
-    },
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-    }
+  requestOptions: {
+    timeout: 8000,
+  },
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+  }
 });
 
 // --- 🌍 终极新闻源矩阵 (修复新浪宕机问题) ---
@@ -41,7 +40,7 @@ const SOURCE_MAP: Record<string, any[]> = {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get('category') || 'markets';
-  
+
   console.log(`📰 [News Engine] Fetching abundant news for: ${category}`);
 
   let yahooQuery = 'finance';
@@ -51,40 +50,44 @@ export async function GET(req: Request) {
 
   let yahooNews: any[] = [];
   try {
-    const result = await yahooFinance.search(yahooQuery, { newsCount: 8 }); 
+    const result: any = await yahooFinance.search(yahooQuery, { newsCount: 8 });
     if (result.news) {
-        yahooNews = result.news.map((item: any) => {
-            const ts = item.providerPublishTime * 1000;
-            return {
-                id: item.uuid || Math.random().toString(),
-                title: item.title,
-                source: item.publisher || 'Yahoo',
-                time: new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                timestamp: ts,
-                link: item.link,
-                sentiment: 'Neutral',
-                tags: ['Yahoo']
-            };
-        });
+      yahooNews = result.news.map((item: any) => {
+        const ts = item.providerPublishTime * 1000;
+        return {
+          id: item.uuid || Math.random().toString(),
+          title: item.title,
+          source: item.publisher || 'Yahoo',
+          time: new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: ts,
+          link: item.link,
+          sentiment: 'Neutral',
+          tags: ['Yahoo']
+        };
+      });
     }
   } catch (e) { console.error("Yahoo Fetch Error (Ignored)"); }
 
   const targetSources = SOURCE_MAP[category] || SOURCE_MAP['markets'];
-  
+
   const rssPromises = targetSources.map(async (source) => {
     try {
-      const feed = await parser.parseURL(source.url);
-      return feed.items.slice(0, 12).map(item => {
-        let ts = Date.now(); 
+      // ── Per-source timeout: 4.5s max, prevents one slow feed from blocking all ──
+      const feed: any = await Promise.race([
+        parser.parseURL(source.url),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('RSS timeout')), 4500))
+      ]);
+      return feed.items.slice(0, 12).map((item: any) => {
+        let ts = Date.now();
         if (item.pubDate) {
-            const parsedTs = new Date(item.pubDate).getTime();
-            if (!isNaN(parsedTs)) ts = parsedTs;
+          const parsedTs = new Date(item.pubDate).getTime();
+          if (!isNaN(parsedTs)) ts = parsedTs;
         }
         return {
           id: item.guid || item.link || Math.random().toString(),
           title: item.title,
-          source: source.name, 
-          time: new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          source: source.name,
+          time: new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           timestamp: ts,
           link: item.link,
           sentiment: 'Neutral',
@@ -92,7 +95,7 @@ export async function GET(req: Request) {
         };
       });
     } catch (e) {
-      console.warn(`⚠️ RSS Failed: ${source.name}`); 
+      console.warn(`⚠️ RSS Failed: ${source.name}`);
       return [];
     }
   });
@@ -100,12 +103,12 @@ export async function GET(req: Request) {
   const rssResults = await Promise.all(rssPromises);
   const rssNews = rssResults.flat();
 
-  const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; 
+  const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
   const currentTimestamp = Date.now();
 
   const allNews = [...yahooNews, ...rssNews]
-    .filter(item => item.title && item.link) 
-    .filter(item => (currentTimestamp - item.timestamp) < MAX_AGE_MS) 
+    .filter(item => item.title && item.link)
+    .filter(item => (currentTimestamp - item.timestamp) < MAX_AGE_MS)
     .filter((item, index, self) => index === self.findIndex((t) => (t.title === item.title)))
     .sort((a, b) => b.timestamp - a.timestamp);
 

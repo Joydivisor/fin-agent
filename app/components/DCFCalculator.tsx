@@ -10,13 +10,45 @@ import {
     ScatterChart, Scatter, CartesianGrid
 } from 'recharts';
 
-interface Props { onBack: () => void; activeSymbol?: string; }
+interface Props { onBack: () => void; activeSymbol?: string; lang?: 'ZH' | 'EN' | 'JA' | 'KO'; }
 
 type TabId = 'dcf' | 'wacc' | 'black_scholes' | 'three_statement';
 
-export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) {
+const DCF_I18N: Record<string, Record<string, string>> = {
+    ZH: {
+        title: 'Financial Analysis Engine', subtitle: 'DCF · WACC · Black-Scholes · 三表模型',
+        dcf_tab: 'DCF 估值', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '三表联动',
+        dcf_params: 'DCF 参数配置', calc_btn: '计算估值', wacc_params: 'WACC (CAPM) 参数',
+        calc_wacc: '计算 WACC', bs_title: 'Black-Scholes 期权定价', calc_option: '计算期权价格',
+        ts_params: '三表联动参数', gen_ts: '生成三表', balanced_ok: '配平成功', balanced_fail: '未配平!'
+    },
+    EN: {
+        title: 'Financial Analysis Engine', subtitle: 'DCF · WACC · Black-Scholes · 3-Statement',
+        dcf_tab: 'DCF Valuation', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '3-Statement',
+        dcf_params: 'DCF Parameters', calc_btn: 'Calculate', wacc_params: 'WACC (CAPM) Parameters',
+        calc_wacc: 'Calculate WACC', bs_title: 'Black-Scholes Option Pricing', calc_option: 'Price Option',
+        ts_params: '3-Statement Parameters', gen_ts: 'Generate', balanced_ok: 'Balanced', balanced_fail: 'Unbalanced!'
+    },
+    JA: {
+        title: 'ファイナンシャル分析エンジン', subtitle: 'DCF · WACC · Black-Scholes · 三表モデル',
+        dcf_tab: 'DCF 評価', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '三表連動',
+        dcf_params: 'DCF パラメータ', calc_btn: '計算', wacc_params: 'WACC (CAPM) パラメータ',
+        calc_wacc: 'WACC 計算', bs_title: 'Black-Scholes オプション', calc_option: '計算',
+        ts_params: '三表パラメータ', gen_ts: '生成', balanced_ok: 'バランス済', balanced_fail: '未バランス!'
+    },
+    KO: {
+        title: '재무 분석 엔진', subtitle: 'DCF · WACC · Black-Scholes · 3표 모델',
+        dcf_tab: 'DCF 밸류에이션', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '3표 연동',
+        dcf_params: 'DCF 매개변수', calc_btn: '계산', wacc_params: 'WACC (CAPM) 매개변수',
+        calc_wacc: 'WACC 계산', bs_title: 'Black-Scholes 옵션 가격', calc_option: '계산',
+        ts_params: '3표 매개변수', gen_ts: '생성', balanced_ok: '균형 완료', balanced_fail: '불균형!'
+    },
+};
+
+export default function DCFCalculator({ onBack, activeSymbol = 'AAPL', lang = 'ZH' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('dcf');
     const [isComputing, setIsComputing] = useState(false);
+    const t = DCF_I18N[lang] || DCF_I18N.ZH;
 
     // ── DCF State ──
     const [dcfInputs, setDcfInputs] = useState({
@@ -201,10 +233,10 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
     };
 
     const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-        { id: 'dcf', label: 'DCF 估值', icon: <TrendingUp size={14} /> },
-        { id: 'wacc', label: 'WACC', icon: <Sigma size={14} /> },
-        { id: 'black_scholes', label: 'Black-Scholes', icon: <Activity size={14} /> },
-        { id: 'three_statement', label: '三表联动', icon: <Layers size={14} /> },
+        { id: 'dcf', label: t.dcf_tab, icon: <TrendingUp size={14} /> },
+        { id: 'wacc', label: t.wacc_tab, icon: <Sigma size={14} /> },
+        { id: 'black_scholes', label: t.bs_tab, icon: <Activity size={14} /> },
+        { id: 'three_statement', label: t.ts_tab, icon: <Layers size={14} /> },
     ];
 
     const InputField = ({ label, value, onChange, suffix, step }: { label: string; value: number; onChange: (v: number) => void; suffix?: string; step?: number }) => (
@@ -239,8 +271,8 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-100"><Calculator size={18} className="text-indigo-600" /></div>
                         <div>
-                            <h2 className="text-lg font-black text-slate-900">Financial Analysis Engine</h2>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">DCF · WACC · Black-Scholes · 三表模型</p>
+                            <h2 className="text-lg font-black text-slate-900">{t.title}</h2>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.subtitle}</p>
                         </div>
                     </div>
                 </div>
@@ -269,7 +301,7 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                     <>
                         {/* Input Panel */}
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><DollarSign size={14} className="text-indigo-500" /> DCF 参数配置</h3>
+                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><DollarSign size={14} className="text-indigo-500" /> {t.dcf_params}</h3>
                             <div className="grid grid-cols-5 gap-4 mb-4">
                                 {dcfInputs.fcf.map((v, i) => (
                                     <InputField key={i} label={`Year ${i + 1} FCF`} value={v}
@@ -285,7 +317,7 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                             </div>
                             <button onClick={computeDCF} disabled={isComputing}
                                 className="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
-                            ><Calculator size={14} /> 计算估值</button>
+                            ><Calculator size={14} /> {t.calc_btn}</button>
                         </div>
 
                         {/* Results */}
@@ -369,7 +401,7 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                 {activeTab === 'wacc' && (
                     <>
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Sigma size={14} className="text-indigo-500" /> WACC (CAPM) 参数</h3>
+                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Sigma size={14} className="text-indigo-500" /> {t.wacc_params}</h3>
                             <div className="grid grid-cols-4 gap-4">
                                 <InputField label="Equity Value (E)" value={waccInputs.equityValue} onChange={v => setWaccInputs({ ...waccInputs, equityValue: v })} />
                                 <InputField label="Debt Value (D)" value={waccInputs.debtValue} onChange={v => setWaccInputs({ ...waccInputs, debtValue: v })} />
@@ -383,7 +415,7 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                             </div>
                             <button onClick={computeWACC} disabled={isComputing}
                                 className="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
-                            ><Calculator size={14} /> 计算 WACC</button>
+                            ><Calculator size={14} /> {t.calc_wacc}</button>
                         </div>
                         {waccResult && (
                             <div className="grid grid-cols-3 gap-4">
@@ -399,7 +431,7 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                 {activeTab === 'black_scholes' && (
                     <>
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Activity size={14} className="text-indigo-500" /> Black-Scholes 期权定价</h3>
+                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Activity size={14} className="text-indigo-500" /> {t.bs_title}</h3>
                             <div className="grid grid-cols-3 gap-4">
                                 <InputField label="Stock Price (S)" value={bsInputs.stockPrice} onChange={v => setBsInputs({ ...bsInputs, stockPrice: v })} />
                                 <InputField label="Strike Price (K)" value={bsInputs.strikePrice} onChange={v => setBsInputs({ ...bsInputs, strikePrice: v })} />
@@ -422,7 +454,7 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                             </div>
                             <button onClick={computeBS} disabled={isComputing}
                                 className="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
-                            ><Calculator size={14} /> 计算期权价格</button>
+                            ><Calculator size={14} /> {t.calc_option}</button>
                         </div>
                         {bsResult && (
                             <div className="grid grid-cols-3 gap-4">
@@ -446,7 +478,7 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                 {activeTab === 'three_statement' && (
                     <>
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Layers size={14} className="text-indigo-500" /> 三表联动参数</h3>
+                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Layers size={14} className="text-indigo-500" /> {t.ts_params}</h3>
                             <div className="grid grid-cols-5 gap-3 text-xs">
                                 <InputField label="Revenue" value={tsInputs.revenue} onChange={v => setTsInputs({ ...tsInputs, revenue: v })} />
                                 <InputField label="Revenue Growth" value={tsInputs.revenueGrowthRate} onChange={v => setTsInputs({ ...tsInputs, revenueGrowthRate: v })} suffix="%" />
@@ -456,13 +488,13 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL' }: Props) 
                             </div>
                             <button onClick={computeTS} disabled={isComputing}
                                 className="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
-                            ><Calculator size={14} /> 生成三表</button>
+                            ><Calculator size={14} /> {t.gen_ts}</button>
                         </div>
                         {tsResult && (
                             <div className="space-y-4">
                                 {/* Balance Check */}
                                 <div className={`p-3 rounded-xl text-sm font-bold flex items-center gap-2 ${tsResult.balanceCheck.balanced ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
-                                    {tsResult.balanceCheck.balanced ? '✅' : '❌'} A = L + E: {tsResult.balanceCheck.assets.toFixed(2)} = {tsResult.balanceCheck.liabilitiesPlusEquity.toFixed(2)} — {tsResult.balanceCheck.balanced ? '配平成功' : '未配平!'}
+                                    {tsResult.balanceCheck.balanced ? '✅' : '❌'} A = L + E: {tsResult.balanceCheck.assets.toFixed(2)} = {tsResult.balanceCheck.liabilitiesPlusEquity.toFixed(2)} — {tsResult.balanceCheck.balanced ? t.balanced_ok : t.balanced_fail}
                                 </div>
 
                                 {/* Three Tables side by side */}

@@ -1795,7 +1795,7 @@ export default function FinAgent() {
                 {/* VIEW 6: Command Center */}
                 {activeNavIndex === 6 && (
                     <div className="flex-1 w-full h-full min-h-0 relative overflow-y-auto bg-slate-50">
-                        <FinancialCommandCenter activeSymbol={selectedTicker?.symbol || 'AAPL'} />
+                        <FinancialCommandCenter activeSymbol={selectedTicker?.symbol || 'AAPL'} lang={lang} />
                     </div>
                 )}
 

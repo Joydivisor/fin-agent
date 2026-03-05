@@ -6,9 +6,33 @@ import {
     RefreshCw, ChevronDown, AlertTriangle, Target, Shield
 } from 'lucide-react';
 
-interface Props { onBack: () => void; activeSymbol?: string; }
+interface Props { onBack: () => void; activeSymbol?: string; lang?: 'ZH' | 'EN' | 'JA' | 'KO'; }
 
-export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props) {
+const RV_I18N: Record<string, Record<string, string>> = {
+    ZH: {
+        title: 'Equity Research Hub', subtitle: '研报生成 · 管理层指引提取 · 量化评级',
+        report_gen: '研究报告生成器', gen_btn: '生成研报', guidance_title: '管理层指引提取 (Guidance Extraction)',
+        extract_btn: '提取指引', stop_btn: 'Stop Generation'
+    },
+    EN: {
+        title: 'Equity Research Hub', subtitle: 'Report Generation · Guidance Extraction · Quant Rating',
+        report_gen: 'Research Report Generator', gen_btn: 'Generate Report', guidance_title: 'Management Guidance Extraction',
+        extract_btn: 'Extract Guidance', stop_btn: 'Stop Generation'
+    },
+    JA: {
+        title: 'エクイティリサーチハブ', subtitle: 'レポート · ガイダンス · 定量評価',
+        report_gen: 'リサーチレポート生成', gen_btn: 'レポート生成', guidance_title: '経営陣ガイダンス抽出',
+        extract_btn: 'ガイダンス抽出', stop_btn: '停止'
+    },
+    KO: {
+        title: '에쿼티 리서치 허브', subtitle: '보고서 · 가이던스 · 정량 평가',
+        report_gen: '리서치 보고서 생성', gen_btn: '보고서 생성', guidance_title: '경영진 가이던스 추출',
+        extract_btn: '가이던스 추출', stop_btn: '중지'
+    },
+};
+
+export default function ResearchViewer({ onBack, activeSymbol = 'AAPL', lang = 'ZH' }: Props) {
+    const t = RV_I18N[lang] || RV_I18N.ZH;
     const [symbol, setSymbol] = useState(activeSymbol);
     const [isGenerating, setIsGenerating] = useState(false);
     const [reportText, setReportText] = useState('');
@@ -160,14 +184,14 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100"><FileText size={18} className="text-emerald-600" /></div>
                         <div>
-                            <h2 className="text-lg font-black text-slate-900">Equity Research Hub</h2>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">研报生成 · 管理层指引提取 · 量化评级</p>
+                            <h2 className="text-lg font-black text-slate-900">{t.title}</h2>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.subtitle}</p>
                         </div>
                     </div>
                 </div>
                 {isGenerating && (
                     <button onClick={() => abortRef.current?.abort()} className="flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-[11px] font-bold text-rose-600 hover:bg-rose-100 transition-colors">
-                        <span>Stop Generation</span>
+                        <span>{t.stop_btn}</span>
                     </button>
                 )}
             </div>
@@ -175,7 +199,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
             <div className="flex-1 p-6 space-y-5">
                 {/* Research Report Generator */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                    <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Target size={14} className="text-emerald-500" /> 研究报告生成器</h3>
+                    <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Target size={14} className="text-emerald-500" /> {t.report_gen}</h3>
                     <div className="flex gap-3 items-end">
                         <div className="flex-1">
                             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Target Symbol</label>
@@ -189,7 +213,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
                         </div>
                         <button onClick={generateReport} disabled={isGenerating || !symbol}
                             className="px-6 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-2"
-                        >{isGenerating ? <RefreshCw size={14} className="animate-spin" /> : <FileText size={14} />} 生成研报</button>
+                        >{isGenerating ? <RefreshCw size={14} className="animate-spin" /> : <FileText size={14} />} {t.gen_btn}</button>
                     </div>
                 </div>
 
@@ -240,7 +264,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
 
                 {/* Guidance Extractor */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                    <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={14} className="text-emerald-500" /> 管理层指引提取 (Guidance Extraction)</h3>
+                    <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={14} className="text-emerald-500" /> {t.guidance_title}</h3>
                     <textarea
                         value={guidanceText}
                         onChange={e => setGuidanceText(e.target.value)}
@@ -250,7 +274,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL' }: Props)
                     />
                     <button onClick={extractGuidance} disabled={isGenerating || !guidanceText.trim()}
                         className="mt-3 px-5 py-2 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
-                    >提取指引</button>
+                    >{t.extract_btn}</button>
                 </div>
 
                 {/* Guidance Results */}

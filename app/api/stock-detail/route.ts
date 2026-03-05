@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import YahooFinance from 'yahoo-finance2';
+import Parser from 'rss-parser';
 
 export const revalidate = 0;
+
+// RSS parser for Google News fallback
+const rssParser = new Parser({
+  requestOptions: { timeout: 5000 },
+  headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' }
+});
 
 // --- 0. 热修复补丁 (Hot-Fix Layer) ---
 // 针对数据源经常缺失的中概股/ADR，手动注入最近的财报数据
@@ -16,7 +23,7 @@ const HOT_FIX_DATA: Record<string, any> = {
       retail: 12.30
     },
     // 强制修正主力流向算法参数 (中概股波动大，给予更高权重)
-    flowFactor: 1.5 
+    flowFactor: 1.5
   },
   'BABA': {
     ownership: { inst: 65.0, insiders: 2.5, retail: 32.5 }
@@ -69,7 +76,7 @@ export async function GET(req: Request) {
     ]);
 
     // --- 数据处理核心 ---
-    
+
     // 1. 检查是否有热修复配置
     const hotFix = HOT_FIX_DATA[symbol] || HOT_FIX_DATA[symbol.toUpperCase()];
     const isAShare = symbol.endsWith('.SS') || symbol.endsWith('.SZ');
@@ -83,34 +90,34 @@ export async function GET(req: Request) {
       if (!q.close || !q.open) return null;
       const isUp = q.close >= q.open;
       const pctChange = (q.close - q.open) / q.open;
-      
+
       let netFlow = 0;
       if (q.volume) {
         // 改进的资金流公式
         const turnover = q.volume * q.close;
         const volatility = (q.high - q.low) / q.open;
-        
-        // 核心逻辑：A股/中概股看重“量价配合”
+
+        // 核心逻辑：A股/中概股看重"量价配合"
         if (isAShare || hotFix) {
-           // 波动小但量大 = 主力吸筹/出货
-           const smartMoneyWeight = volatility < 0.005 ? 2.0 : 1.0;
-           netFlow = turnover * pctChange * flowMultiplier * smartMoneyWeight;
-           
-           // 噪音过滤
-           if (Math.abs(pctChange) < 0.0002) netFlow *= 0.1;
+          // 波动小但量大 = 主力吸筹/出货
+          const smartMoneyWeight = volatility < 0.005 ? 2.0 : 1.0;
+          netFlow = turnover * pctChange * flowMultiplier * smartMoneyWeight;
+
+          // 噪音过滤
+          if (Math.abs(pctChange) < 0.0002) netFlow *= 0.1;
         } else {
-           // 美股逻辑
-           netFlow = isUp 
-             ? q.volume * (Math.abs(pctChange)) * 10000 
-             : -q.volume * (Math.abs(pctChange)) * 10000;
+          // 美股逻辑
+          netFlow = isUp
+            ? q.volume * (Math.abs(pctChange)) * 10000
+            : -q.volume * (Math.abs(pctChange)) * 10000;
         }
       }
       cumulativeFlow += netFlow;
 
       return {
-        time: q.date, 
-        price: q.close, 
-        volume: q.volume, 
+        time: q.date,
+        price: q.close,
+        volume: q.volume,
         netFlow: Math.round(netFlow),
         cumulativeFlow: Math.round(cumulativeFlow),
         label: new Date(q.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -136,14 +143,14 @@ export async function GET(req: Request) {
       const h = quoteSummary.majorHoldersBreakdown;
       let inst = parseFloat(((h.institutionsPercentHeld || h.pctHeldByInstitutions || 0) * 100).toFixed(2));
       let insiders = parseFloat(((h.insidersPercentHeld || 0) * 100).toFixed(2));
-      
+
       // 容错归一化
       if (inst + insiders > 100) {
-         const total = inst + insiders;
-         inst = parseFloat(((inst / total) * 100).toFixed(2));
-         insiders = parseFloat(((insiders / total) * 100).toFixed(2));
+        const total = inst + insiders;
+        inst = parseFloat(((inst / total) * 100).toFixed(2));
+        insiders = parseFloat(((insiders / total) * 100).toFixed(2));
       }
-      
+
       const retail = parseFloat(Math.max(0, 100 - inst - insiders).toFixed(2));
       ownership = [
         { name: 'Institutions', value: inst, color: '#6366f1' },
@@ -164,25 +171,50 @@ export async function GET(req: Request) {
         }));
     }
 
-    // 5. 新闻
-    const news = (newsData?.news || [])
+    // 5. 新闻 — Multi-Source Fallback Architecture
+    let news = (newsData?.news || [])
       .filter((n: any) => n.title && n.publisher)
       .map((n: any, index: number) => ({
         id: index,
         title: n.title,
         source: n.publisher || 'Yahoo',
-        time: n.providerPublishTime ? new Date(n.providerPublishTime * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString(),
+        time: n.providerPublishTime ? new Date(n.providerPublishTime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString(),
         link: n.link,
-        sentiment: Math.random() > 0.5 ? 'Bullish' : 'Bearish' 
+        sentiment: Math.random() > 0.5 ? 'Bullish' : 'Bearish'
       }));
+
+    // ── Fallback: If Yahoo returned empty, try Google News RSS ──
+    if (news.length === 0) {
+      console.log(`📰 [Stock-Detail] Yahoo news empty for ${symbol}, falling back to Google News RSS...`);
+      try {
+        const googleNewsUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(symbol + ' stock')}&hl=en-US&gl=US&ceid=US:en`;
+        const feed: any = await Promise.race([
+          rssParser.parseURL(googleNewsUrl),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Google News RSS timeout')), 5000))
+        ]);
+        if (feed?.items?.length > 0) {
+          news = feed.items.slice(0, 10).map((item: any, index: number) => ({
+            id: index,
+            title: item.title || '',
+            source: item.creator || item.source?.name || 'Google News',
+            time: item.pubDate ? new Date(item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString(),
+            link: item.link || '',
+            sentiment: 'Neutral'
+          }));
+          console.log(`✅ [Stock-Detail] Google News RSS returned ${news.length} articles for ${symbol}`);
+        }
+      } catch (gErr) {
+        console.warn(`⚠️ [Stock-Detail] Google News RSS also failed for ${symbol}:`, gErr);
+      }
+    }
 
     return NextResponse.json({
       chart: processedChart,
       prevClose: chartData?.meta?.chartPreviousClose || processedChart[0]?.price || 0,
       ownership,
-      topInstitutions, 
+      topInstitutions,
       news,
-      isHotFixed: !!hotFix // 标记位，方便前端（可选）展示“数据来源：修正估算”
+      isHotFixed: !!hotFix // 标记位，方便前端（可选）展示"数据来源：修正估算"
     });
 
   } catch (error: any) {

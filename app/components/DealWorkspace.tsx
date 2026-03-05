@@ -10,13 +10,41 @@ import {
     PolarRadiusAxis, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell
 } from 'recharts';
 
-interface Props { onBack: () => void; activeSymbol?: string; }
+interface Props { onBack: () => void; activeSymbol?: string; lang?: 'ZH' | 'EN' | 'JA' | 'KO'; }
 
 type TabId = 'deal_score' | 'lbo' | 'cim';
 
-export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) {
+const DW_I18N: Record<string, Record<string, string>> = {
+    ZH: {
+        title: 'IB & PE Workspace', subtitle: 'Deal Scoring · LBO · CIM Generation',
+        tab_deal: 'Deal Scoring', tab_lbo: 'LBO 模型', tab_cim: 'CIM 生成',
+        lbo_params: 'LBO 参数', run_lbo: '运行 LBO',
+        cim_form: 'CIM 信息录入', gen_cim: '生成 CIM', eval_deal: '评估交易'
+    },
+    EN: {
+        title: 'IB & PE Workspace', subtitle: 'Deal Scoring · LBO · CIM Generation',
+        tab_deal: 'Deal Scoring', tab_lbo: 'LBO Model', tab_cim: 'CIM Generator',
+        lbo_params: 'LBO Parameters', run_lbo: 'Run LBO',
+        cim_form: 'CIM Information', gen_cim: 'Generate CIM', eval_deal: 'Evaluate Deal'
+    },
+    JA: {
+        title: 'IB & PE ワークスペース', subtitle: 'ディールスコアリング · LBO · CIM',
+        tab_deal: 'ディールスコア', tab_lbo: 'LBO モデル', tab_cim: 'CIM 生成',
+        lbo_params: 'LBO パラメータ', run_lbo: 'LBO 実行',
+        cim_form: 'CIM 情報入力', gen_cim: 'CIM 生成', eval_deal: 'ディール評価'
+    },
+    KO: {
+        title: 'IB & PE 워크스페이스', subtitle: '딜 스코어링 · LBO · CIM',
+        tab_deal: '딜 스코어링', tab_lbo: 'LBO 모델', tab_cim: 'CIM 생성',
+        lbo_params: 'LBO 매개변수', run_lbo: 'LBO 실행',
+        cim_form: 'CIM 정보 입력', gen_cim: 'CIM 생성', eval_deal: '딜 평가'
+    },
+};
+
+export default function DealWorkspace({ onBack, activeSymbol = 'AAPL', lang = 'ZH' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('deal_score');
     const [isComputing, setIsComputing] = useState(false);
+    const t = DW_I18N[lang] || DW_I18N.ZH;
 
     // ── Deal Scoring State ──
     const [dealScores, setDealScores] = useState({
@@ -175,9 +203,9 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) 
     };
 
     const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-        { id: 'deal_score', label: 'Deal Scoring', icon: <Target size={14} /> },
-        { id: 'lbo', label: 'LBO 模型', icon: <Calculator size={14} /> },
-        { id: 'cim', label: 'CIM 生成', icon: <FileText size={14} /> },
+        { id: 'deal_score', label: t.tab_deal, icon: <Target size={14} /> },
+        { id: 'lbo', label: t.tab_lbo, icon: <Calculator size={14} /> },
+        { id: 'cim', label: t.tab_cim, icon: <FileText size={14} /> },
     ];
 
     return (
@@ -188,8 +216,8 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) 
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-amber-50 rounded-xl border border-amber-100"><Building2 size={18} className="text-amber-600" /></div>
                         <div>
-                            <h2 className="text-lg font-black text-slate-900">IB & PE Workspace</h2>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Deal Scoring · LBO · CIM Generation</p>
+                            <h2 className="text-lg font-black text-slate-900">{t.title}</h2>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.subtitle}</p>
                         </div>
                     </div>
                 </div>
@@ -232,7 +260,7 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) 
                             </div>
                             <button onClick={computeDealScore} disabled={isComputing}
                                 className="mt-4 px-6 py-2.5 bg-amber-600 text-white text-sm font-bold rounded-xl hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center gap-2"
-                            ><Scale size={14} /> 评估交易</button>
+                            ><Scale size={14} /> {t.eval_deal}</button>
                         </div>
 
                         {dealResult && (
@@ -287,7 +315,7 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) 
                 {activeTab === 'lbo' && (
                     <>
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Calculator size={14} className="text-amber-500" /> LBO 参数</h3>
+                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><Calculator size={14} className="text-amber-500" /> {t.lbo_params}</h3>
                             <div className="grid grid-cols-5 gap-3">
                                 <InputField label="Enterprise Value" value={lboInputs.enterpriseValue} onChange={v => setLboInputs({ ...lboInputs, enterpriseValue: v })} suffix="M" />
                                 <InputField label="Debt Amount" value={lboInputs.debtAmount} onChange={v => setLboInputs({ ...lboInputs, debtAmount: v })} suffix="M" />
@@ -306,7 +334,7 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) 
                             </div>
                             <button onClick={computeLBO} disabled={isComputing}
                                 className="mt-4 px-6 py-2.5 bg-amber-600 text-white text-sm font-bold rounded-xl hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center gap-2"
-                            ><Calculator size={14} /> 运行 LBO</button>
+                            ><Calculator size={14} /> {t.run_lbo}</button>
                         </div>
 
                         {lboResult && (
@@ -379,7 +407,7 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) 
                 {activeTab === 'cim' && (
                     <>
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><FileText size={14} className="text-amber-500" /> CIM 信息录入</h3>
+                            <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2"><FileText size={14} className="text-amber-500" /> {t.cim_form}</h3>
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Company Name</label>
@@ -400,7 +428,7 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL' }: Props) 
                             </div>
                             <button onClick={generateCIM} disabled={isComputing}
                                 className="mt-4 px-6 py-2.5 bg-amber-600 text-white text-sm font-bold rounded-xl hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center gap-2"
-                            ><FileText size={14} /> 生成 CIM</button>
+                            ><FileText size={14} /> {t.gen_cim}</button>
                         </div>
 
                         {cimResult && (

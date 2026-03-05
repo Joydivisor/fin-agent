@@ -414,7 +414,7 @@ export class PortfolioOptimizer {
         };
 
         // ── Michaud Resampled Efficient Frontier (v2.0) ──
-        const numResamplings = 200;
+        const numResamplings = 50; // Reduced from 200 for faster computation without sacrificing diversification quality
         const minReturn = Math.min(...returns) * 0.5;
         const maxReturn = Math.max(...returns) * 1.2;
 
