@@ -20,31 +20,36 @@ const PV_I18N: Record<string, Record<string, string>> = {
         title: 'Wealth Management', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
         tab_overview: '持仓分析', tab_optimize: '前沿优化', tab_tax: 'Tax Harvest', tab_mc: '蒙特卡洛',
         holdings: '持仓明细', prompt: '点击上方标签开始分析', prompt_sub: '选择分析模式后，系统将自动计算您的投资组合指标',
-        no_harvest: 'No tax-loss harvesting opportunities found. All positions are in profit.'
+        no_harvest: 'No tax-loss harvesting opportunities found. All positions are in profit.',
+        guide_title: '💡 这是什么？', guide_desc: '财富管理引擎能自动分析您的持仓组合，使用马科维茨前沿找到最优配置，扫描税损收割机会，并运行蒙特卡洛模拟预测未来走势。系统已自动算好，点击标签即可查看结果。'
     },
     EN: {
         title: 'Wealth Management', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
         tab_overview: 'Portfolio Analysis', tab_optimize: 'Frontier Optimization', tab_tax: 'Tax Harvest', tab_mc: 'Monte Carlo',
         holdings: 'Holdings Detail', prompt: 'Click a tab above to start analysis', prompt_sub: 'The system will automatically compute your portfolio metrics',
-        no_harvest: 'No tax-loss harvesting opportunities found. All positions are in profit.'
+        no_harvest: 'No tax-loss harvesting opportunities found. All positions are in profit.',
+        guide_title: '💡 What is this?', guide_desc: 'The Wealth Management Engine auto-analyzes your portfolio, finds the optimal allocation via Markowitz frontier, scans for tax-loss harvesting opportunities, and runs Monte Carlo simulations. Results are pre-computed — just click a tab to explore.'
     },
     JA: {
         title: 'ウェルスマネジメント', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
         tab_overview: 'ポートフォリオ分析', tab_optimize: 'フロンティア最適化', tab_tax: 'Tax Harvest', tab_mc: 'モンテカルロ',
         holdings: '保有明細', prompt: 'タブをクリックして分析を開始', prompt_sub: 'ポートフォリオ指標を自動計算します',
-        no_harvest: '税損失収穫の機会はありません。'
+        no_harvest: '税損失収穫の機会はありません。',
+        guide_title: '💡 これは何？', guide_desc: 'ウェルスマネジメントエンジンがポートフォリオを自動分析、マーコウィッツ最適化、税損失収穫、モンテカルロシミュレーションを実行。タブをクリックで結果をご覧ください。'
     },
     KO: {
         title: '자산 관리', subtitle: 'Markowitz · Tax-Loss Harvesting · Monte Carlo',
         tab_overview: '포트폴리오 분석', tab_optimize: '프론티어 최적화', tab_tax: 'Tax Harvest', tab_mc: '몬테카를로',
         holdings: '보유 상세', prompt: '탭을 클릭하여 분석 시작', prompt_sub: '시스템이 포트폴리오 지표를 자동 계산합니다',
-        no_harvest: '세금 손실 수확 기회가 없습니다.'
+        no_harvest: '세금 손실 수확 기회가 없습니다.',
+        guide_title: '💡 이것은 무엇인가요?', guide_desc: '우에르스 매니지먼트 엔진이 포트폴리오를 자동 분석하고, 마코위츠 최적화, 세금 손실 수확, 몰테카를로 시뮬레이션을 실행합니다. 탭을 클릭해 결과를 확인하세요.'
     },
 };
 
 export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL', lang = 'ZH' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
     const [isComputing, setIsComputing] = useState(false);
+    const [showGuide, setShowGuide] = useState(true);
     const t = PV_I18N[lang] || PV_I18N.ZH;
 
     const [holdings, setHoldings] = useState([
@@ -179,6 +184,16 @@ export default function PortfolioVisualizer({ onBack, activeSymbol = 'AAPL', lan
                 </div>
                 {isComputing && <div className="flex items-center gap-2 text-[11px] text-violet-500 font-bold"><RefreshCw size={12} className="animate-spin" />Computing...</div>}
             </div>
+
+            {showGuide && (
+                <div className="mx-6 mt-3 bg-violet-50 border border-violet-100 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex-1">
+                        <div className="text-sm font-black text-violet-700 mb-1">{t.guide_title}</div>
+                        <div className="text-xs text-violet-600/80 leading-relaxed">{t.guide_desc}</div>
+                    </div>
+                    <button onClick={() => setShowGuide(false)} className="p-1 text-violet-400 hover:text-violet-600 transition-colors shrink-0"><span className="text-xs font-bold">✕</span></button>
+                </div>
+            )}
 
             <div className="px-6 pt-3 bg-white border-b border-slate-100">
                 <div className="flex gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 w-fit">

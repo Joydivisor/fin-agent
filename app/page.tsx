@@ -33,7 +33,22 @@ const TRANSLATIONS = {
         flow_in: '流入', flow_out: '流出', cumulative: '累计净量', click_expand: '点击放大',
         scroll_zoom: '滚轮缩放', chat_thinking: '正在思考...', status: 'SYSTEM ONLINE', region: 'GLOBAL',
         no_alerts: '系统运行正常，当前暂无异动预警。', archive_clear: '归档并清空',
-        no_news: '暂无资讯'
+        no_news: '暂无资讯',
+        tut_welcome: '欢迎使用 FIN-AGENT', tut_subtitle: '您的次世代 AI 量化投资终端已就绪。请花 30 秒了解核心武器：',
+        tut_deep_title: '思考模式 (Deep Thinking)', tut_deep_desc: '对话框左侧的 🧠 按钮可切换模型心智。开启时，AI 呈现底层推演；切换为 ⚡ 时，极速输出结论。',
+        tut_travel_title: '对话穿梭 (Time Travel)', tut_travel_desc: '聊完后，点击"归档并清空"。被归档的对话会保存在【记忆库】中，点击任意历史卡片即可恢复上下文。',
+        tut_search_title: '智能检索与预览 (Smart Search)', tut_search_desc: '支持 A股中文、拼音缩写及代码。点击搜索结果后进入预览模式，点击"+ 加入自选"即可永久跟踪。',
+        tut_ai_title: '无处不在的悬浮 AI', tut_ai_desc: '在右侧新闻流点击 🌟 图标，或在详情页点击任意图表，都可以唤醒 AI 实现穿透式追问。',
+        tut_enter: '我已了解，立即进入系统',
+        auth_verify_title: '验证邮箱', auth_verify_btn: '确认验证',
+        auth_welcome_back: '欢迎回来', auth_create: '创建账户',
+        auth_login_sub: '登录以访问您的终端', auth_register_sub: '注册以获取实时提醒',
+        auth_email: '邮箱地址', auth_password: '密码',
+        auth_signing_in: '登录中...', auth_sending: '发送中...', auth_sign_in: '登录', auth_register_send: '注册并发送邮件',
+        auth_no_account: '没有账户？', auth_has_account: '已有账户？', auth_sign_up: '注册', auth_log_in: '登录',
+        auth_code_error: '验证码错误，请重试！(开发测试期可直接输入万能码 123456)', auth_network_error: '验证服务请求失败，请检查网络环境。',
+        gc_connected: '已连接', gc_ask: '你可以问我任何问题。',
+        thinking_mode: '思考模式 (Deep Thinking)', fast_mode: '快速模式 (Fast Mode)'
     },
     EN: {
         nav: ['Workspaces', 'News', 'Alerts', 'Memory', 'Weekly Report', 'Help', 'Command Center'],
@@ -48,7 +63,22 @@ const TRANSLATIONS = {
         flow_in: 'In', flow_out: 'Out', cumulative: 'Cum', click_expand: 'Expand',
         scroll_zoom: 'Zoom', chat_thinking: 'Thinking...', status: 'SYSTEM ONLINE', region: 'GLOBAL',
         no_alerts: 'System stable. No active alerts.', archive_clear: 'Archive & Clear',
-        no_news: 'No news available'
+        no_news: 'No news available',
+        tut_welcome: 'Welcome to FIN-AGENT', tut_subtitle: 'Your next-gen AI quantitative investment terminal is ready. Take 30 seconds to explore:',
+        tut_deep_title: 'Deep Thinking Mode', tut_deep_desc: 'Toggle the 🧠 button on the left of the chat input to switch between deep reasoning and ⚡ fast output mode.',
+        tut_travel_title: 'Time Travel', tut_travel_desc: 'After chatting, click "Archive & Clear". Archived chats are saved in Memory — click any card to instantly restore its context.',
+        tut_search_title: 'Smart Search', tut_search_desc: 'Supports Chinese names, pinyin abbreviations and Yahoo tickers. Click a result to preview, then "+ Add to Watchlist" to track permanently.',
+        tut_ai_title: 'Ubiquitous AI', tut_ai_desc: 'Click the 🌟 icon on news items, or click any chart in stock details, to summon a floating AI for deep follow-up questions.',
+        tut_enter: 'Got it — Enter the System',
+        auth_verify_title: 'Verify your email', auth_verify_btn: 'Verify',
+        auth_welcome_back: 'Welcome back', auth_create: 'Create account',
+        auth_login_sub: 'Sign in to access your terminal', auth_register_sub: 'Register for real-time alerts',
+        auth_email: 'Email Address', auth_password: 'Password',
+        auth_signing_in: 'Signing In...', auth_sending: 'Sending...', auth_sign_in: 'Sign In', auth_register_send: 'Register & Send Email',
+        auth_no_account: "Don't have an account? ", auth_has_account: 'Already have an account? ', auth_sign_up: 'Sign up', auth_log_in: 'Log in',
+        auth_code_error: 'Verification code error. Please try again! (Dev mode: use master code 123456)', auth_network_error: 'Verification service request failed. Please check your network.',
+        gc_connected: 'Connected to', gc_ask: 'Ask me anything.',
+        thinking_mode: 'Deep Thinking Mode', fast_mode: 'Fast Mode'
     },
     JA: {
         nav: ['ワークスペース', 'ニュース', 'アラート', 'メモリー', '週次レポート', 'ヘルプ', 'コマンドセンター'],
@@ -62,7 +92,22 @@ const TRANSLATIONS = {
         tactical_title: '戦術分析', flow_in: '流入', flow_out: '流出', cumulative: '累積',
         click_expand: '拡大', scroll_zoom: 'ズーム', chat_thinking: '考え中...', status: 'オンライン',
         region: 'グローバル', no_alerts: 'システムは正常です。アラートはありません。', archive_clear: 'アーカイブして消去',
-        no_news: 'ニュースはありません'
+        no_news: 'ニュースはありません',
+        tut_welcome: 'FIN-AGENT へようこそ', tut_subtitle: '次世代AIクオンツ投資ターミナルが準備完了。30秒で主要機能をご紹介：',
+        tut_deep_title: '思考モード', tut_deep_desc: 'チャット入力左の🧠ボタンで深層推論と⚡高速出力を切り替えできます。',
+        tut_travel_title: 'タイムトラベル', tut_travel_desc: 'チャット後「アーカイブして消去」をクリック。アーカイブされた会話はメモリーに保存され、カードをクリックで復元できます。',
+        tut_search_title: 'スマート検索', tut_search_desc: '中国語名、ピンイン略語、Yahooティッカーに対応。結果をクリックでプレビュー、「+ウォッチリストに追加」で追跡。',
+        tut_ai_title: 'ユビキタスAI', tut_ai_desc: 'ニュースの🌟アイコンやチャートをクリックすると、フローティングAIが起動し深掘り質問ができます。',
+        tut_enter: '了解しました — システムに入る',
+        auth_verify_title: 'メール認証', auth_verify_btn: '認証する',
+        auth_welcome_back: 'おかえりなさい', auth_create: 'アカウント作成',
+        auth_login_sub: 'ターミナルにアクセス', auth_register_sub: 'リアルタイムアラートに登録',
+        auth_email: 'メールアドレス', auth_password: 'パスワード',
+        auth_signing_in: 'ログイン中...', auth_sending: '送信中...', auth_sign_in: 'ログイン', auth_register_send: '登録してメール送信',
+        auth_no_account: 'アカウントをお持ちでない方は', auth_has_account: 'すでにアカウントをお持ちの方は', auth_sign_up: '登録', auth_log_in: 'ログイン',
+        auth_code_error: '認証コードエラー。再試行してください！（開発モード：マスターコード123456）', auth_network_error: '認証サービスのリクエストに失敗しました。ネットワークを確認してください。',
+        gc_connected: '接続先:', gc_ask: '何でもお聞きください。',
+        thinking_mode: '思考モード', fast_mode: '高速モード'
     },
     KO: {
         nav: ['워크스페이스', '뉴스', '알림', '메모리', '주간 보고서', '도움말', '지휘 센터'],
@@ -76,7 +121,22 @@ const TRANSLATIONS = {
         tactical_title: '전술 분석', flow_in: '유입', flow_out: '유출', cumulative: '누적',
         click_expand: '확대', scroll_zoom: '줌', chat_thinking: '생각 중...', status: '온라인',
         region: '글로벌', no_alerts: '시스템이 안정적입니다. 알림이 없습니다.', archive_clear: '보관 및 지우기',
-        no_news: '뉴스 없음'
+        no_news: '뉴스 없음',
+        tut_welcome: 'FIN-AGENT에 오신 것을 환영합니다', tut_subtitle: '차세대 AI 퀀트 투자 터미널이 준비되었습니다. 30초만에 핵심 기능을 확인하세요:',
+        tut_deep_title: '사고 모드', tut_deep_desc: '채팅 입력 왼쪽의 🧠 버튼으로 심층 추론과 ⚡ 빠른 출력 모드를 전환할 수 있습니다.',
+        tut_travel_title: '타임 트래벨', tut_travel_desc: '대화 후 "보관 및 지우기"를 클릭하세요. 보관된 대화는 메모리에 저장되며, 카드를 클릭하면 즉시 복원됩니다.',
+        tut_search_title: '스마트 검색', tut_search_desc: '중국어, 병음 약어, Yahoo 티커를 지원합니다. 검색 결과를 클릭해 미리보기, "+관심종목 추가"로 추적하세요.',
+        tut_ai_title: '유비쿼터스 AI', tut_ai_desc: '뉴스의 🌟 아이콘이나 차트를 클릭하면 플로팅 AI가 활성화되어 심층 질문이 가능합니다.',
+        tut_enter: '확인 — 시스템 진입',
+        auth_verify_title: '이메일 인증', auth_verify_btn: '인증하기',
+        auth_welcome_back: '다시 오신 것을 환영합니다', auth_create: '계정 만들기',
+        auth_login_sub: '터미널에 접속하기', auth_register_sub: '실시간 알림 등록',
+        auth_email: '이메일 주소', auth_password: '비밀번호',
+        auth_signing_in: '로그인 중...', auth_sending: '전송 중...', auth_sign_in: '로그인', auth_register_send: '등록 및 이메일 전송',
+        auth_no_account: '계정이 없으신가요? ', auth_has_account: '이미 계정이 있으신가요? ', auth_sign_up: '회원가입', auth_log_in: '로그인',
+        auth_code_error: '인증 코드 오류. 다시 시도해주세요! (개발 모드: 마스터 코드 123456)', auth_network_error: '인증 서비스 요청 실패. 네트워크를 확인하세요.',
+        gc_connected: '연결됨:', gc_ask: '무엇이든 물어보세요.',
+        thinking_mode: '사고 모드', fast_mode: '빠른 모드'
     }
 };
 
@@ -749,10 +809,10 @@ export default function FinAgent() {
                 setShowAuthModal(false);
                 setShowLanding(false);
             } else {
-                alert(data.error || "验证码错误，请重试！(开发测试期可直接输入万能码 123456)");
+                alert(data.error || t.auth_code_error);
             }
         } catch (e) {
-            alert("验证服务请求失败，请检查网络环境。");
+            alert(t.auth_network_error);
         }
     };
 
@@ -764,8 +824,8 @@ export default function FinAgent() {
                     <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
                         <div className="absolute -inset-10 bg-indigo-500/50 rounded-full blur-3xl animate-pulse" />
                         <Rocket size={48} className="text-white mx-auto mb-4 relative z-10" />
-                        <h2 className="text-3xl font-black text-white tracking-tight relative z-10">Welcome to FIN-AGENT</h2>
-                        <p className="text-indigo-100 font-medium mt-2 relative z-10">您的次世代 AI 量化投资终端已就绪。请花 30 秒了解核心武器：</p>
+                        <h2 className="text-3xl font-black text-white tracking-tight relative z-10">{t.tut_welcome}</h2>
+                        <p className="text-indigo-100 font-medium mt-2 relative z-10">{t.tut_subtitle}</p>
                     </div>
 
                     <div className="p-8 space-y-6 bg-slate-50">
@@ -773,29 +833,29 @@ export default function FinAgent() {
                             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
                                 <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl h-fit border border-indigo-100"><BrainCircuit size={20} /></div>
                                 <div>
-                                    <h3 className="font-black text-slate-800 mb-1 text-sm">思考模式 (Deep Thinking)</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">对话框左侧的 🧠 按钮可物理切换模型心智。开启时，AI 呈现底层推演；切换为 ⚡️ 时，模型将拒绝思考，极速输出结论。</p>
+                                    <h3 className="font-black text-slate-800 mb-1 text-sm">{t.tut_deep_title}</h3>
+                                    <p className="text-xs text-slate-500 leading-relaxed">{t.tut_deep_desc}</p>
                                 </div>
                             </div>
                             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
                                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl h-fit border border-emerald-100"><Archive size={20} /></div>
                                 <div>
-                                    <h3 className="font-black text-slate-800 mb-1 text-sm">对话穿梭 (Time Travel)</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">在控制台聊完后，点击“归档并清空”。被归档的对话会保存在【记忆库】中，点击任意历史卡片，即可瞬间恢复当时的聊天上下文。</p>
+                                    <h3 className="font-black text-slate-800 mb-1 text-sm">{t.tut_travel_title}</h3>
+                                    <p className="text-xs text-slate-500 leading-relaxed">{t.tut_travel_desc}</p>
                                 </div>
                             </div>
                             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
                                 <div className="p-2 bg-rose-50 text-rose-600 rounded-xl h-fit border border-rose-100"><Search size={20} /></div>
                                 <div>
-                                    <h3 className="font-black text-slate-800 mb-1 text-sm">智能检索与预览 (Smart Search)</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">支持 A股中文、拼音缩写及雅虎代码。点击搜索结果后会进入【预览模式】，点击名称旁边的“+ 加入自选”即可永久跟踪。</p>
+                                    <h3 className="font-black text-slate-800 mb-1 text-sm">{t.tut_search_title}</h3>
+                                    <p className="text-xs text-slate-500 leading-relaxed">{t.tut_search_desc}</p>
                                 </div>
                             </div>
                             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex gap-4">
                                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl h-fit border border-amber-100"><Sparkles size={20} /></div>
                                 <div>
-                                    <h3 className="font-black text-slate-800 mb-1 text-sm">无处不在的悬浮 AI</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">在右侧新闻流点击 🌟 图标，或在股票详情页点击任意饼图，都可以瞬间唤醒悬浮 AI，实现“指哪打哪”的穿透式追问。</p>
+                                    <h3 className="font-black text-slate-800 mb-1 text-sm">{t.tut_ai_title}</h3>
+                                    <p className="text-xs text-slate-500 leading-relaxed">{t.tut_ai_desc}</p>
                                 </div>
                             </div>
                         </div>
@@ -807,7 +867,7 @@ export default function FinAgent() {
                             }}
                             className="w-full py-4 bg-indigo-600 text-white font-black text-lg rounded-2xl hover:bg-indigo-500 transition-all shadow-xl hover:shadow-indigo-500/30 flex items-center justify-center gap-2"
                         >
-                            <span>我已了解，立即进入系统</span> <ArrowRight size={20} />
+                            <span>{t.tut_enter}</span> <ArrowRight size={20} />
                         </button>
                     </div>
                 </div>
@@ -832,8 +892,8 @@ export default function FinAgent() {
                         {authMode === 'verify' ? (
                             <div className="text-center py-6 animate-in slide-in-from-right-4">
                                 <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6"><Mail size={32} className="text-emerald-500" /></div>
-                                <h2 className="text-2xl font-black text-slate-900 mb-2"><span>Verify your email</span></h2>
-                                <div className="text-sm text-slate-500 mb-6 px-4"><span>We've sent a 6-digit code to <b>{authEmail}</b>. Check your inbox.</span></div>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2"><span>{t.auth_verify_title}</span></h2>
+                                <div className="text-sm text-slate-500 mb-6 px-4"><span>{t.auth_verify_title === '验证邮箱' ? `我们已向 ${authEmail} 发送了 6 位验证码，请查收。` : `We've sent a 6-digit code to ${authEmail}. Check your inbox.`}</span></div>
                                 <input
                                     type="text"
                                     maxLength={6}
@@ -844,21 +904,21 @@ export default function FinAgent() {
                                     onKeyDown={e => e.key === 'Enter' && handleVerifyCode()}
                                 />
                                 <button onClick={handleVerifyCode} className="w-full py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center justify-center gap-2">
-                                    <CheckCircle2 size={18} /> <span>确认验证 (Verify)</span>
+                                    <CheckCircle2 size={18} /> <span>{t.auth_verify_btn}</span>
                                 </button>
                             </div>
                         ) : (
                             <div className="animate-in slide-in-from-left-4">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
-                                    <span>{authMode === 'login' ? 'Welcome back' : 'Create account'}</span>
+                                    <span>{authMode === 'login' ? t.auth_welcome_back : t.auth_create}</span>
                                 </h2>
                                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">
-                                    <span>{authMode === 'login' ? 'Sign in to access your terminal' : 'Register for real-time alerts'}</span>
+                                    <span>{authMode === 'login' ? t.auth_login_sub : t.auth_register_sub}</span>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Email Address</span></label>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>{t.auth_email}</span></label>
                                         <input
                                             type="email"
                                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
@@ -868,7 +928,7 @@ export default function FinAgent() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>Password</span></label>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide"><span>{t.auth_password}</span></label>
                                         <input
                                             type="password"
                                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
@@ -879,14 +939,14 @@ export default function FinAgent() {
                                         />
                                     </div>
                                     <button disabled={isSendingEmail} onClick={handleAuthAction} className="w-full mt-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50">
-                                        <span>{isSendingEmail ? (authMode === 'login' ? 'Signing In...' : 'Sending...') : (authMode === 'login' ? 'Sign In' : 'Register & Send Email')}</span>
+                                        <span>{isSendingEmail ? (authMode === 'login' ? t.auth_signing_in : t.auth_sending) : (authMode === 'login' ? t.auth_sign_in : t.auth_register_send)}</span>
                                     </button>
                                 </div>
 
                                 <div className="mt-6 text-center text-xs text-slate-500">
-                                    <span>{authMode === 'login' ? "Don't have an account? " : "Already have an account? "}</span>
+                                    <span>{authMode === 'login' ? t.auth_no_account : t.auth_has_account}</span>
                                     <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="font-bold text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
-                                        <span>{authMode === 'login' ? 'Sign up' : 'Log in'}</span>
+                                        <span>{authMode === 'login' ? t.auth_sign_up : t.auth_log_in}</span>
                                     </button>
                                 </div>
                             </div>
@@ -1362,7 +1422,7 @@ export default function FinAgent() {
                                                         <button
                                                             onClick={() => setIsThinkingMode(!isThinkingMode)}
                                                             className={`p-1.5 rounded-lg flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
-                                                            title={isThinkingMode ? "思考模式 (Deep Thinking)" : "快速模式 (Fast Mode)"}
+                                                            title={isThinkingMode ? t.thinking_mode : t.fast_mode}
                                                         >
                                                             {isThinkingMode ? <BrainCircuit size={16} /> : <Zap size={16} />}
                                                         </button>
@@ -1408,7 +1468,7 @@ export default function FinAgent() {
                                             <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0 shadow-sm"><Bot size={18} className="text-indigo-600" /></div>
                                             <div className="space-y-1.5 w-full">
                                                 <div className="flex items-center gap-2"><span className="text-[11px] font-black text-indigo-600 uppercase tracking-wider"><span>FIN-AGENT CORE</span></span><span className="text-[10px] font-bold text-slate-400 font-mono"><span>Live</span></span></div>
-                                                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-5 text-sm text-slate-700 leading-relaxed shadow-sm"><div className="font-medium mb-2"><span>Connected to <b className="text-slate-900">{activeEngine === 'deepseek' ? 'DeepSeek V3/R1' : activeEngine === 'zhipu' ? 'Zhipu GLM-5' : 'Google Gemini'}</b>. Ask me anything.</span></div></div>
+                                                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-5 text-sm text-slate-700 leading-relaxed shadow-sm"><div className="font-medium mb-2"><span>{t.gc_connected} <b className="text-slate-900">{activeEngine === 'deepseek' ? 'DeepSeek V3/R1' : activeEngine === 'zhipu' ? 'Zhipu GLM-5' : 'Google Gemini'}</b>. {t.gc_ask}</span></div></div>
                                             </div>
                                         </div>
                                         {globalChatMessages.map((msg, idx) => (
@@ -1434,7 +1494,7 @@ export default function FinAgent() {
                                             <button
                                                 onClick={() => setIsThinkingMode(!isThinkingMode)}
                                                 className={`p-2 rounded-xl flex items-center justify-center transition-colors border shadow-sm shrink-0 ${isThinkingMode ? 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100' : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'}`}
-                                                title={isThinkingMode ? "思考模式 (Deep Thinking)" : "快速模式 (Fast Mode)"}
+                                                title={isThinkingMode ? t.thinking_mode : t.fast_mode}
                                             >
                                                 {isThinkingMode ? <BrainCircuit size={18} /> : <Zap size={18} />}
                                             </button>

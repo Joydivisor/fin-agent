@@ -19,31 +19,48 @@ const DW_I18N: Record<string, Record<string, string>> = {
         title: 'IB & PE Workspace', subtitle: 'Deal Scoring · LBO · CIM Generation',
         tab_deal: 'Deal Scoring', tab_lbo: 'LBO 模型', tab_cim: 'CIM 生成',
         lbo_params: 'LBO 参数', run_lbo: '运行 LBO',
-        cim_form: 'CIM 信息录入', gen_cim: '生成 CIM', eval_deal: '评估交易'
+        cim_form: 'CIM 信息录入', gen_cim: '生成 CIM', eval_deal: '评估交易',
+        tooltip_ev: '收购公司的总成本 (股权 + 债务 - 现金)。',
+        tooltip_debt: '用于融资收购的借款金额。债务越多 = 风险越高，但潜在 IRR 越高。',
+        tooltip_exit: '假定第5年出售公司时的 EV/EBITDA 倍数。',
+        guide_title: '💡 这是什么？', guide_desc: '投行交易台能自动评估交易质量、运行 LBO 杠杆收购模型、生成 CIM 备忘录。输入股票代码后，系统自动拉取财务数据并预填参数，点击即可一键出结果。'
     },
     EN: {
         title: 'IB & PE Workspace', subtitle: 'Deal Scoring · LBO · CIM Generation',
         tab_deal: 'Deal Scoring', tab_lbo: 'LBO Model', tab_cim: 'CIM Generator',
         lbo_params: 'LBO Parameters', run_lbo: 'Run LBO',
-        cim_form: 'CIM Information', gen_cim: 'Generate CIM', eval_deal: 'Evaluate Deal'
+        cim_form: 'CIM Information', gen_cim: 'Generate CIM', eval_deal: 'Evaluate Deal',
+        tooltip_ev: 'Total cost to acquire the company (Equity + Debt - Cash).',
+        tooltip_debt: 'Amount borrowed to fund the acquisition. More debt = higher risk but potentially higher IRR.',
+        tooltip_exit: 'Assumed EV/EBITDA multiple when selling the company in year 5.',
+        guide_title: '💡 What is this?', guide_desc: 'The IB Deal Workspace auto-evaluates deal quality, runs LBO leveraged buyout models, and generates CIM memoranda. Enter a ticker — the system fetches financials and pre-fills parameters. One click for instant results.'
     },
     JA: {
         title: 'IB & PE ワークスペース', subtitle: 'ディールスコアリング · LBO · CIM',
         tab_deal: 'ディールスコア', tab_lbo: 'LBO モデル', tab_cim: 'CIM 生成',
         lbo_params: 'LBO パラメータ', run_lbo: 'LBO 実行',
-        cim_form: 'CIM 情報入力', gen_cim: 'CIM 生成', eval_deal: 'ディール評価'
+        cim_form: 'CIM 情報入力', gen_cim: 'CIM 生成', eval_deal: 'ディール評価',
+        tooltip_ev: '会社取得の総コスト (株式 + 負債 - 現金)。',
+        tooltip_debt: '買収資金の借入額。負債が多いほどリスクが高いが、潜在的にIRRが高くなります。',
+        tooltip_exit: '第5年に会社を売却する際の想定EV/EBITDA倍率。',
+        guide_title: '💡 これは何？', guide_desc: 'IBディールワークスペースがディール評価、LBOモデル、CIMを自動生成。ティッカーを入力するだけで、プロ仕様のデフォルト値がプリセット済み。ワンクリックで結果が出ます。'
     },
     KO: {
         title: 'IB & PE 워크스페이스', subtitle: '딜 스코어링 · LBO · CIM',
         tab_deal: '딜 스코어링', tab_lbo: 'LBO 모델', tab_cim: 'CIM 생성',
         lbo_params: 'LBO 매개변수', run_lbo: 'LBO 실행',
-        cim_form: 'CIM 정보 입력', gen_cim: 'CIM 생성', eval_deal: '딜 평가'
+        cim_form: 'CIM 정보 입력', gen_cim: 'CIM 생성', eval_deal: '딜 평가',
+        tooltip_ev: '회사 인수 총비용 (주식 + 부채 - 현금).',
+        tooltip_debt: '인수 자금 조달을 위한 차입금. 부채가 많을수록 리스크가 높지만 잠재적 IRR이 높아집니다.',
+        tooltip_exit: '5년차에 회사 매각 시 가정하는 EV/EBITDA 배수.',
+        guide_title: '💡 이것은 무엇인가요?', guide_desc: 'IB 딜 워크스페이스가 딜 평가, LBO 레버리지드 바이아웃 모델, CIM 메모를 자동 생성합니다. 티커만 입력하면 재무 데이터를 자동 로드합니다. 클릭 한 번으로 결과를 확인하세요.'
     },
 };
 
 export default function DealWorkspace({ onBack, activeSymbol = 'AAPL', lang = 'ZH' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('deal_score');
     const [isComputing, setIsComputing] = useState(false);
+    const [showGuide, setShowGuide] = useState(true);
     const t = DW_I18N[lang] || DW_I18N.ZH;
 
     // ── Deal Scoring State ──
@@ -228,6 +245,16 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL', lang = 'Z
                 {isComputing && <div className="flex items-center gap-2 text-[11px] text-amber-500 font-bold"><RefreshCw size={12} className="animate-spin" />Computing...</div>}
             </div>
 
+            {showGuide && (
+                <div className="mx-6 mt-3 bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex-1">
+                        <div className="text-sm font-black text-amber-700 mb-1">{t.guide_title}</div>
+                        <div className="text-xs text-amber-600/80 leading-relaxed">{t.guide_desc}</div>
+                    </div>
+                    <button onClick={() => setShowGuide(false)} className="p-1 text-amber-400 hover:text-amber-600 transition-colors shrink-0"><span className="text-xs font-bold">✕</span></button>
+                </div>
+            )}
+
             <div className="px-6 pt-3 bg-white border-b border-slate-100">
                 <div className="flex gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 w-fit">
                     {tabs.map(tab => (
@@ -323,16 +350,16 @@ export default function DealWorkspace({ onBack, activeSymbol = 'AAPL', lang = 'Z
                             <div className="grid grid-cols-5 gap-3">
                                 <div className="group relative">
                                     <InputField label="Enterprise Value" value={lboInputs.enterpriseValue} onChange={v => setLboInputs({ ...lboInputs, enterpriseValue: v })} suffix="M" />
-                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Total cost to acquire the company (Equity + Debt - Cash).</div>
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">{t.tooltip_ev}</div>
                                 </div>
                                 <div className="group relative">
                                     <InputField label="Debt Amount" value={lboInputs.debtAmount} onChange={v => setLboInputs({ ...lboInputs, debtAmount: v })} suffix="M" />
-                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Amount borrowed to fund the acquisition. More debt = higher risk but potentially higher IRR.</div>
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">{t.tooltip_debt}</div>
                                 </div>
                                 <InputField label="Interest Rate" value={lboInputs.interestRate} onChange={v => setLboInputs({ ...lboInputs, interestRate: v })} suffix="%" step={0.005} />
                                 <div className="group relative">
                                     <InputField label="Exit Multiple" value={lboInputs.exitMultiple} onChange={v => setLboInputs({ ...lboInputs, exitMultiple: v })} suffix="x" step={0.5} />
-                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Assumed EV/EBITDA multiple when selling the company in year 5.</div>
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-slate-800 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">{t.tooltip_exit}</div>
                                 </div>
                                 <InputField label="Annual Repay" value={lboInputs.annualDebtRepayment} onChange={v => setLboInputs({ ...lboInputs, annualDebtRepayment: v })} suffix="M" />
                             </div>

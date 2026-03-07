@@ -12,22 +12,26 @@ const RV_I18N: Record<string, Record<string, string>> = {
     ZH: {
         title: 'Equity Research Hub', subtitle: '研报生成 · 管理层指引提取 · 量化评级',
         report_gen: '研究报告生成器', gen_btn: '生成研报', guidance_title: '管理层指引提取 (Guidance Extraction)',
-        extract_btn: '提取指引', stop_btn: 'Stop Generation'
+        extract_btn: '提取指引', stop_btn: 'Stop Generation',
+        guide_title: '💡 这是什么？', guide_desc: '智能研报系统能自动为任意股票生成机构级研究报告和管理层指引分析。支持中文搜索（如“江淮汽车”），输入后点击“生成研报”即可获得专业分析。'
     },
     EN: {
         title: 'Equity Research Hub', subtitle: 'Report Generation · Guidance Extraction · Quant Rating',
         report_gen: 'Research Report Generator', gen_btn: 'Generate Report', guidance_title: 'Management Guidance Extraction',
-        extract_btn: 'Extract Guidance', stop_btn: 'Stop Generation'
+        extract_btn: 'Extract Guidance', stop_btn: 'Stop Generation',
+        guide_title: '💡 What is this?', guide_desc: 'The AI Research system auto-generates institutional-grade equity research reports and management guidance analysis for any stock. Supports Chinese search (e.g. "江淮汽车"). Enter a name or ticker, click "Generate Report" for a professional analysis.'
     },
     JA: {
         title: 'エクイティリサーチハブ', subtitle: 'レポート · ガイダンス · 定量評価',
         report_gen: 'リサーチレポート生成', gen_btn: 'レポート生成', guidance_title: '経営陣ガイダンス抽出',
-        extract_btn: 'ガイダンス抽出', stop_btn: '停止'
+        extract_btn: 'ガイダンス抽出', stop_btn: '停止',
+        guide_title: '💡 これは何？', guide_desc: 'AIリサーチシステムが機関投資家レベルのレポートと経営ガイダンス分析を自動生成。中国語検索にも対応。ティッカーを入力して「レポート生成」をクリック。'
     },
     KO: {
         title: '에쿼티 리서치 허브', subtitle: '보고서 · 가이던스 · 정량 평가',
         report_gen: '리서치 보고서 생성', gen_btn: '보고서 생성', guidance_title: '경영진 가이던스 추출',
-        extract_btn: '가이던스 추출', stop_btn: '중지'
+        extract_btn: '가이던스 추출', stop_btn: '중지',
+        guide_title: '💡 이것은 무엇인가요?', guide_desc: 'AI 리서치 시스템이 기관 투자자 수준의 리서치 보고서와 경영 가이던스 분석을 자동 생성합니다. 중국어 검색도 지원합니다. 티커를 입력하고 "보고서 생성"을 클릭하세요.'
     },
 };
 
@@ -35,6 +39,7 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL', lang = '
     const t = RV_I18N[lang] || RV_I18N.ZH;
     const [symbol, setSymbol] = useState(activeSymbol);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [showGuide, setShowGuide] = useState(true);
     const [reportText, setReportText] = useState('');
     const [reportMeta, setReportMeta] = useState<any>(null);
     const [guidanceText, setGuidanceText] = useState('');
@@ -111,8 +116,8 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL', lang = '
                 const searchRes = await fetch(`/api/search?q=${encodeURIComponent(targetTicker)}`);
                 if (searchRes.ok) {
                     const searchData = await searchRes.json();
-                    if (searchData.results && searchData.results.length > 0) {
-                        targetTicker = searchData.results[0].symbol;
+                    if (Array.isArray(searchData) && searchData.length > 0) {
+                        targetTicker = searchData[0].symbol;
                         setSymbol(targetTicker); // Update UI to show the resolved ticker
                     }
                 }
@@ -212,6 +217,16 @@ export default function ResearchViewer({ onBack, activeSymbol = 'AAPL', lang = '
                     </button>
                 )}
             </div>
+
+            {showGuide && (
+                <div className="mx-6 mt-3 bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex-1">
+                        <div className="text-sm font-black text-emerald-700 mb-1">{t.guide_title}</div>
+                        <div className="text-xs text-emerald-600/80 leading-relaxed">{t.guide_desc}</div>
+                    </div>
+                    <button onClick={() => setShowGuide(false)} className="p-1 text-emerald-400 hover:text-emerald-600 transition-colors shrink-0"><span className="text-xs font-bold">✕</span></button>
+                </div>
+            )}
 
             <div className="flex-1 p-6 space-y-5">
                 {/* Research Report Generator */}

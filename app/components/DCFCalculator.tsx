@@ -20,34 +20,47 @@ const DCF_I18N: Record<string, Record<string, string>> = {
         dcf_tab: 'DCF 估值', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '三表联动',
         dcf_params: 'DCF 参数配置', calc_btn: '计算估值', wacc_params: 'WACC (CAPM) 参数',
         calc_wacc: '计算 WACC', bs_title: 'Black-Scholes 期权定价', calc_option: '计算期权价格',
-        ts_params: '三表联动参数', gen_ts: '生成三表', balanced_ok: '配平成功', balanced_fail: '未配平!'
+        ts_params: '三表联动参数', gen_ts: '生成三表', balanced_ok: '配平成功', balanced_fail: '未配平!',
+        tooltip_wacc: '加权平均资本成本。WACC 越高 = 风险越大，现值越低。',
+        tooltip_tg: '第5年之后的永续增长率。应接近长期GDP增速(2-3%)。',
+        guide_title: '💡 这是什么？', guide_desc: '金融建模引擎能自动为任何股票计算 DCF 估值、WACC 资本成本、期权定价和三表联动模型。您只需输入股票代码，系统已预填专业默认参数，点击“计算”即可瞬间出结果。'
     },
     EN: {
         title: 'Financial Analysis Engine', subtitle: 'DCF · WACC · Black-Scholes · 3-Statement',
         dcf_tab: 'DCF Valuation', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '3-Statement',
         dcf_params: 'DCF Parameters', calc_btn: 'Calculate', wacc_params: 'WACC (CAPM) Parameters',
         calc_wacc: 'Calculate WACC', bs_title: 'Black-Scholes Option Pricing', calc_option: 'Price Option',
-        ts_params: '3-Statement Parameters', gen_ts: 'Generate', balanced_ok: 'Balanced', balanced_fail: 'Unbalanced!'
+        ts_params: '3-Statement Parameters', gen_ts: 'Generate', balanced_ok: 'Balanced', balanced_fail: 'Unbalanced!',
+        tooltip_wacc: 'Weighted Average Cost of Capital. Higher WACC = Higher risk, lower present value.',
+        tooltip_tg: 'Expected perpetual growth rate after year 5. Should be close to long-term GDP growth (2-3%).',
+        guide_title: '💡 What is this?', guide_desc: 'The Financial Modeling Engine auto-computes DCF valuation, WACC, option pricing, and 3-statement models for any stock. Just enter a ticker — professional defaults are pre-filled. Click "Calculate" for instant results.'
     },
     JA: {
         title: 'ファイナンシャル分析エンジン', subtitle: 'DCF · WACC · Black-Scholes · 三表モデル',
         dcf_tab: 'DCF 評価', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '三表連動',
         dcf_params: 'DCF パラメータ', calc_btn: '計算', wacc_params: 'WACC (CAPM) パラメータ',
         calc_wacc: 'WACC 計算', bs_title: 'Black-Scholes オプション', calc_option: '計算',
-        ts_params: '三表パラメータ', gen_ts: '生成', balanced_ok: 'バランス済', balanced_fail: '未バランス!'
+        ts_params: '三表パラメータ', gen_ts: '生成', balanced_ok: 'バランス済', balanced_fail: '未バランス!',
+        tooltip_wacc: '加重平均資本コスト。WACCが高いほどリスクが高く、現在価値が低下します。',
+        tooltip_tg: '5年目以降の永続成長率。長期GDP成長率(2-3%)に近い値。',
+        guide_title: '💡 これは何？', guide_desc: '金融モデリングエンジンがDCF評価、WACC、オプション価格、三表モデルを自動計算。ティッカーを入力するだけで、プロ仕様のデフォルト値がプリセット済み。「計算」をクリックで即座に結果が出ます。'
     },
     KO: {
         title: '재무 분석 엔진', subtitle: 'DCF · WACC · Black-Scholes · 3표 모델',
         dcf_tab: 'DCF 밸류에이션', wacc_tab: 'WACC', bs_tab: 'Black-Scholes', ts_tab: '3표 연동',
         dcf_params: 'DCF 매개변수', calc_btn: '계산', wacc_params: 'WACC (CAPM) 매개변수',
         calc_wacc: 'WACC 계산', bs_title: 'Black-Scholes 옵션 가격', calc_option: '계산',
-        ts_params: '3표 매개변수', gen_ts: '생성', balanced_ok: '균형 완료', balanced_fail: '불균형!'
+        ts_params: '3표 매개변수', gen_ts: '생성', balanced_ok: '균형 완료', balanced_fail: '불균형!',
+        tooltip_wacc: '가중평균자본비용. WACC이 높을수록 리스크가 높고 현재가치가 낮아집니다.',
+        tooltip_tg: '5년 이후 영구 성장률. 장기 GDP 성장률(2-3%)에 가까운 값.',
+        guide_title: '💡 이것은 무엇인가요?', guide_desc: '금융 모델링 엔진이 DCF 평가, WACC, 옵션 가격, 3표 모델을 자동 계산합니다. 티커만 입력하면 전문가 기본값이 설정되어 있습니다. "계산" 클릭으로 즉시 결과를 확인하세요.'
     },
 };
 
 export default function DCFCalculator({ onBack, activeSymbol = 'AAPL', lang = 'ZH' }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('dcf');
     const [isComputing, setIsComputing] = useState(false);
+    const [showGuide, setShowGuide] = useState(true);
     const t = DCF_I18N[lang] || DCF_I18N.ZH;
 
     // ── DCF State ──
@@ -279,6 +292,17 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL', lang = 'Z
                 {isComputing && <div className="flex items-center gap-2 text-[11px] text-indigo-500 font-bold"><RefreshCw size={12} className="animate-spin" />Computing...</div>}
             </div>
 
+            {/* Onboarding Guide */}
+            {showGuide && (
+                <div className="mx-6 mt-3 bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex-1">
+                        <div className="text-sm font-black text-indigo-700 mb-1">{t.guide_title}</div>
+                        <div className="text-xs text-indigo-600/80 leading-relaxed">{t.guide_desc}</div>
+                    </div>
+                    <button onClick={() => setShowGuide(false)} className="p-1 text-indigo-400 hover:text-indigo-600 transition-colors shrink-0"><span className="text-xs font-bold">✕</span></button>
+                </div>
+            )}
+
             {/* Tabs */}
             <div className="px-6 pt-3 bg-white border-b border-slate-100">
                 <div className="flex gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 w-fit">
@@ -312,11 +336,11 @@ export default function DCFCalculator({ onBack, activeSymbol = 'AAPL', lang = 'Z
                             <div className="grid grid-cols-4 gap-4">
                                 <div className="group relative">
                                     <InputField label="WACC" value={dcfInputs.wacc} onChange={v => setDcfInputs({ ...dcfInputs, wacc: v })} suffix="%" step={0.005} />
-                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-indigo-900 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Weighted Average Cost of Capital. Higher WACC = Higher risk, lower present value.</div>
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-indigo-900 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">{t.tooltip_wacc}</div>
                                 </div>
                                 <div className="group relative">
                                     <InputField label="Terminal Growth (g)" value={dcfInputs.terminalGrowth} onChange={v => setDcfInputs({ ...dcfInputs, terminalGrowth: v })} suffix="%" step={0.005} />
-                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-indigo-900 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">Expected perpetual growth rate after year 5. Should be close to long-term GDP growth (2-3%).</div>
+                                    <div className="absolute top-0 right-0 mt-7 hidden group-hover:block bg-indigo-900 text-[10px] text-white p-2 rounded-lg shadow-xl w-48 z-20">{t.tooltip_tg}</div>
                                 </div>
                                 <InputField label="Net Debt" value={dcfInputs.netDebt} onChange={v => setDcfInputs({ ...dcfInputs, netDebt: v })} />
                                 <InputField label="Shares Outstanding" value={dcfInputs.sharesOutstanding} onChange={v => setDcfInputs({ ...dcfInputs, sharesOutstanding: v })} suffix="M" />
