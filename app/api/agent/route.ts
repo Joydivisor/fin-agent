@@ -2,10 +2,33 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
+type HistoryMessage = {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+};
+
+type AgentContext = {
+    symbol?: string;
+    price?: number;
+    news?: {
+        title: string;
+        source?: string;
+    };
+    watchlist?: string[] | string;
+};
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { message, history = [], context = {}, mode = 'chat', provider = 'zhipu', userProfile = '', useThinking = true } = body;
+        const { message, history = [], context = {}, mode = 'chat', provider = 'zhipu', userProfile = '', useThinking = true } = body as {
+            message: string;
+            history?: HistoryMessage[];
+            context?: AgentContext;
+            mode?: string;
+            provider?: string;
+            userProfile?: string;
+            useThinking?: boolean;
+        };
 
         const currentRealTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
 
@@ -49,7 +72,7 @@ This rule overrides ALL other language preferences. Never default to Chinese whe
 
         const messages = [
             { role: 'system', content: systemPrompt },
-            ...history.map((m: any) => ({ role: m.role, content: m.content })),
+            ...history.map((m) => ({ role: m.role, content: m.content })),
             { role: 'user', content: message }
         ];
 
@@ -122,7 +145,7 @@ This rule overrides ALL other language preferences. Never default to Chinese whe
                                     if (content) {
                                         controller.enqueue(new TextEncoder().encode(content));
                                     }
-                                } catch (e) { }
+                                } catch { }
                             }
                         }
                     }
@@ -141,8 +164,9 @@ This rule overrides ALL other language preferences. Never default to Chinese whe
             }
         });
 
-    } catch (error: any) {
+    } catch (error) {
         console.error("Agent Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

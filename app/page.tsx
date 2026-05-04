@@ -825,7 +825,7 @@ export default function FinAgent() {
     const renderTutorialModal = () => {
         if (!showTutorial || !userAccount) return null;
         return (
-            <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="fixed inset-0 z-7000 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
                 <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative border border-slate-200" onClick={e => e.stopPropagation()}>
                     <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
                         <div className="absolute -inset-10 bg-indigo-500/50 rounded-full blur-3xl animate-pulse" />
@@ -884,7 +884,7 @@ export default function FinAgent() {
     const renderAuthModal = () => {
         if (!showAuthModal) return null;
         return (
-            <div className="fixed inset-0 z-[6000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-6000 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
                 <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
                     <div className="absolute top-4 right-4 z-10">
                         <button onClick={() => setShowAuthModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"><X size={16} /></button>
@@ -985,13 +985,13 @@ export default function FinAgent() {
                     <button onClick={() => { setAuthMode('login'); setShowAuthModal(true); }} className="text-sm font-bold text-slate-400 hover:text-indigo-400 transition-colors"><span>Sign In</span></button>
                 </header>
 
-                <main className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/30 via-[#0a0e1a] to-[#0a0e1a]">
+                <main className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-indigo-950/30 via-[#0a0e1a] to-[#0a0e1a]">
                     <div className="w-20 h-20 bg-[#111827] border border-slate-800 rounded-3xl shadow-2xl flex items-center justify-center mb-8 relative">
                         <div className="absolute -inset-8 bg-indigo-500/15 rounded-full blur-2xl animate-pulse" />
                         <Bot size={40} className="text-indigo-400 relative z-10" />
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight mb-6 max-w-4xl leading-tight">
-                        <span>The Autonomous </span><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">AI Financial</span><span> Terminal</span>
+                        <span>The Autonomous </span><span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-emerald-400">AI Financial</span><span> Terminal</span>
                     </h1>
                     <div className="text-lg md:text-xl text-slate-400 max-w-2xl mb-12 leading-relaxed font-medium">
                         <span>Deep research, real-time alerts, and personalized tactical analysis powered by next-gen reasoning models. Your 24/7 intelligent investment copilot.</span>
@@ -1094,7 +1094,7 @@ export default function FinAgent() {
                         <div className="relative group z-50">
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
                                 <User size={12} className="text-indigo-500" />
-                                <span className="text-[10px] font-bold text-slate-700 truncate max-w-[100px]">{userAccount.email}</span>
+                                <span className="text-[10px] font-bold text-slate-700 truncate max-w-25">{userAccount.email}</span>
                                 <ChevronDown size={10} className="text-slate-400" />
                             </div>
                             <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
@@ -1129,10 +1129,10 @@ export default function FinAgent() {
                 <div className="flex items-center gap-4 w-2/5 relative">
                     <div
                         onClick={handleReturnHome}
-                        className="cursor-pointer bg-slate-900/50 border border-slate-700 hover:bg-indigo-950/50 hover:border-indigo-700 hover:text-indigo-400 text-slate-500 p-2.5 rounded-xl transition-all group relative flex items-center justify-center z-[60]"
+                        className="cursor-pointer bg-slate-900/50 border border-slate-700 hover:bg-indigo-950/50 hover:border-indigo-700 hover:text-indigo-400 text-slate-500 p-2.5 rounded-xl transition-all group relative flex items-center justify-center z-60"
                     >
                         <LayoutDashboard size={16} />
-                        <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-white text-[11px] font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-[60] shadow-xl transition-opacity">
+                        <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-white text-[11px] font-medium px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-60 shadow-xl transition-opacity">
                             <span>返回工作台主页</span>
                         </div>
                     </div>
@@ -1148,7 +1148,7 @@ export default function FinAgent() {
                         />
                         {isSearching ? <div className="absolute top-full left-0 w-full bg-white border border-slate-200 mt-2 rounded-2xl shadow-2xl py-4 px-4 text-[11px] font-bold text-indigo-500 flex items-center gap-2"><Activity size={14} className="animate-pulse" /> <span>{t.scanning}</span></div> : null}
                         {searchResults.length > 0 ? (
-                            <div className="absolute top-full left-0 w-full bg-white border border-slate-200 mt-2 rounded-2xl shadow-2xl max-h-[400px] overflow-y-auto py-2">
+                            <div className="absolute top-full left-0 w-full bg-white border border-slate-200 mt-2 rounded-2xl shadow-2xl max-h-100 overflow-y-auto py-2">
                                 {searchResults.map((res) => (
                                     <div key={res.symbol} onClick={() => handleViewFromSearch(res)} className="px-5 py-3 hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-100 last:border-0 group transition-colors">
                                         <div>
@@ -1252,7 +1252,7 @@ export default function FinAgent() {
                                             {!isStockChatExpanded ? (
                                                 <>
                                                     {/* Chart Section */}
-                                                    <div className="h-[320px] w-full p-4 relative border-b border-slate-200 shrink-0 bg-white">
+                                                    <div className="h-80 w-full p-4 relative border-b border-slate-200 shrink-0 bg-white">
                                                         <div className="absolute top-6 left-8 z-10 flex gap-1 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-sm">
                                                             {TIME_RANGES.map(r => (
                                                                 <button key={r} onClick={() => setTimeRange(r)} className={`text-[10px] font-bold px-3.5 py-1.5 rounded-lg transition-all ${timeRange === r ? 'bg-white text-indigo-600 shadow border border-slate-200' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}><span>{r}</span></button>
@@ -1288,7 +1288,7 @@ export default function FinAgent() {
                                                         </ResponsiveContainer>
                                                     </div>
 
-                                                    <div className="min-h-[220px] border-b border-slate-200 bg-slate-50/50 grid grid-cols-1 md:grid-cols-2 gap-4 p-5 shrink-0">
+                                                    <div className="min-h-55 border-b border-slate-200 bg-slate-50/50 grid grid-cols-1 md:grid-cols-2 gap-4 p-5 shrink-0">
 
                                                         <div className="flex flex-col bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
                                                             <div className="flex items-center gap-2 mb-4">
@@ -1344,7 +1344,7 @@ export default function FinAgent() {
                                                     </div>
 
                                                     {/* Flow Chart */}
-                                                    <div className="h-[160px] bg-white p-6 flex flex-col relative border-b border-slate-200 shrink-0 group hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setIsFlowChartExpanded(true)}>
+                                                    <div className="h-40 bg-white p-6 flex flex-col relative border-b border-slate-200 shrink-0 group hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setIsFlowChartExpanded(true)}>
                                                         <div className="absolute top-6 right-6 z-10 opacity-0 group-hover:opacity-100 transition-opacity"><div className="p-2 bg-white rounded-lg shadow border border-slate-200"><Maximize2 size={14} className="text-indigo-600" /></div></div>
                                                         <div className="flex items-center justify-between mb-4">
                                                             <div className="flex items-center gap-2"><div className="p-1.5 bg-rose-50 rounded-lg"><BarChart3 size={14} className="text-rose-600" /></div><div className="text-xs font-black text-slate-700 uppercase tracking-widest"><span>{t.net_flow} ({timeRange})</span></div></div>
@@ -1381,7 +1381,7 @@ export default function FinAgent() {
                                             ) : null}
 
                                             {/* Agent Insight Chat */}
-                                            <div className={`bg-white flex flex-col transition-all duration-500 ease-in-out ${isStockChatExpanded ? 'flex-1' : 'h-[280px] shrink-0'}`}>
+                                            <div className={`bg-white flex flex-col transition-all duration-500 ease-in-out ${isStockChatExpanded ? 'flex-1' : 'h-70 shrink-0'}`}>
                                                 <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/80 backdrop-blur-md sticky top-0 z-10">
                                                     <div className="flex items-center gap-2.5">
                                                         <div className="p-1.5 bg-indigo-100 rounded-lg">
@@ -1471,7 +1471,7 @@ export default function FinAgent() {
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-8 space-y-8 scroll-smooth">
                                         <div className="flex gap-5 max-w-4xl mx-auto">
-                                            <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0 shadow-sm"><Bot size={18} className="text-indigo-600" /></div>
+                                            <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm"><Bot size={18} className="text-indigo-600" /></div>
                                             <div className="space-y-1.5 w-full">
                                                 <div className="flex items-center gap-2"><span className="text-[11px] font-black text-indigo-600 uppercase tracking-wider"><span>FIN-AGENT CORE</span></span><span className="text-[10px] font-bold text-slate-400 font-mono"><span>Live</span></span></div>
                                                 <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-5 text-sm text-slate-700 leading-relaxed shadow-sm"><div className="font-medium mb-2"><span>{t.gc_connected} <b className="text-slate-900">{activeEngine === 'deepseek' ? 'DeepSeek V3/R1' : activeEngine === 'zhipu' ? 'Zhipu GLM-5' : 'Google Gemini'}</b>. {t.gc_ask}</span></div></div>
@@ -1479,7 +1479,7 @@ export default function FinAgent() {
                                         </div>
                                         {globalChatMessages.map((msg, idx) => (
                                             <div key={idx} className={`flex gap-5 max-w-4xl mx-auto ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border ${msg.role === 'user' ? 'bg-white border-slate-200 text-slate-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}>
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm border ${msg.role === 'user' ? 'bg-white border-slate-200 text-slate-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}>
                                                     {msg.role === 'user' ? <User size={18} /> : <Bot size={18} />}
                                                 </div>
                                                 <div className={`space-y-1.5 max-w-[85%] ${msg.role === 'user' ? 'items-end flex flex-col' : ''}`}>
@@ -1516,7 +1516,7 @@ export default function FinAgent() {
                                 </div>
                             ) : (
                                 // 主工作台中控台对话框
-                                <div className="h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
+                                <div className="h-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-indigo-50 via-white to-slate-50">
                                     <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-700 w-full max-w-3xl px-8">
 
                                         <div className="cursor-pointer group relative" onClick={() => setIsGlobalChatActive(true)}>
@@ -1666,7 +1666,7 @@ export default function FinAgent() {
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                                 {(allCategoryNews[cat.id] || []).slice(0, 9).map((news: any) => (
-                                                    <div key={news.id} onClick={() => setReadingNews(news)} className="bg-white border border-slate-200 p-6 rounded-2xl cursor-pointer hover:border-indigo-300 hover:shadow-xl transition-all group relative flex flex-col justify-between min-h-[160px]">
+                                                    <div key={news.id} onClick={() => setReadingNews(news)} className="bg-white border border-slate-200 p-6 rounded-2xl cursor-pointer hover:border-indigo-300 hover:shadow-xl transition-all group relative flex flex-col justify-between min-h-40">
                                                         <div>
                                                             <div className="flex justify-between items-start mb-4">
                                                                 <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md uppercase border border-slate-200 shadow-sm"><span>{news.source}</span></span>
@@ -1798,7 +1798,7 @@ export default function FinAgent() {
                                 </div>
                             </div>
                             <div className="space-y-8 text-sm text-slate-700 leading-relaxed">
-                                <section className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-inner min-h-[400px] flex flex-col relative overflow-hidden">
+                                <section className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-inner min-h-100 flex flex-col relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500" />
                                     <div className="flex justify-between items-center mb-6">
                                         <div className="text-lg font-black text-slate-900 flex items-center gap-3">
@@ -1904,7 +1904,7 @@ export default function FinAgent() {
             {/* --- 浮动提问框 --- */}
             {floatingPrompt ? (
                 <div
-                    className="fixed z-[5000] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-80 animate-in zoom-in-95 duration-200"
+                    className="fixed z-5000 bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-80 animate-in zoom-in-95 duration-200"
                     style={{ top: Math.min(floatingPrompt.y + 15, window.innerHeight - 150), left: Math.min(floatingPrompt.x + 15, window.innerWidth - 320) }}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -1949,7 +1949,7 @@ export default function FinAgent() {
 
             {/* --- Modals - Flow Chart Expanded --- */}
             {isFlowChartExpanded && stockDetail?.chart ? (
-                <div className="fixed inset-0 z-[5000] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-5000 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in zoom-in-95 duration-200">
                     <div className="w-full h-full max-w-6xl max-h-[85vh] bg-white border border-slate-200 rounded-3xl flex flex-col shadow-2xl relative overflow-hidden">
                         <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/80 backdrop-blur-sm">
                             <div className="flex items-center gap-4">
@@ -1986,7 +1986,7 @@ export default function FinAgent() {
 
             {/* Modals - AI Tactical Reports */}
             {tacticalNews ? (
-                <div className="fixed inset-0 z-[5000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-5000 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
                     <div className="bg-white border border-slate-200 w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
                         <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/80 backdrop-blur-sm">
                             <div className="flex items-center gap-3">
@@ -2026,7 +2026,7 @@ export default function FinAgent() {
 
             {/* Modals - Smart Reader */}
             {readingNews ? (
-                <div className="fixed inset-0 z-[5000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-5000 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
                     <div className="bg-white border border-slate-200 w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
                         <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/80 backdrop-blur-sm">
                             <div className="flex items-center gap-3 text-emerald-600">
