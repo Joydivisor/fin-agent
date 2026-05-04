@@ -207,7 +207,7 @@ export default function FinancialCommandCenter({ activeSymbol = 'AAPL', lang = '
             {/* Header */}
             <div className="px-6 pt-6 pb-4">
                 <div className="flex items-center gap-4 mb-2">
-                    <div className="p-3 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl shadow-lg shadow-indigo-500/30">
+                    <div className="p-3 bg-linear-to-br from-indigo-600 to-violet-600 rounded-2xl shadow-lg shadow-indigo-500/30">
                         <Zap size={24} className="text-white" />
                     </div>
                     <div>
@@ -250,7 +250,7 @@ export default function FinancialCommandCenter({ activeSymbol = 'AAPL', lang = '
                             className={`group relative bg-white border ${plugin.borderColor} rounded-3xl overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.01] transition-all duration-300`}
                         >
                             {/* Gradient accent bar */}
-                            <div className={`h-1.5 bg-gradient-to-r ${plugin.gradient}`} />
+                            <div className={`h-1.5 bg-linear-to-r ${plugin.gradient}`} />
 
                             <div className="p-6">
                                 {/* Header */}
@@ -279,7 +279,7 @@ export default function FinancialCommandCenter({ activeSymbol = 'AAPL', lang = '
                                 <div className="space-y-1.5">
                                     {plugin.featureKeys.map((fk, i) => (
                                         <div key={i} className="flex items-center gap-2.5">
-                                            <div className={`w-1 h-1 rounded-full bg-gradient-to-r ${plugin.gradient}`} />
+                                            <div className={`w-1 h-1 rounded-full bg-linear-to-r ${plugin.gradient}`} />
                                             <span className="text-[11px] text-slate-600 font-medium">{t[fk]}</span>
                                         </div>
                                     ))}
@@ -287,7 +287,7 @@ export default function FinancialCommandCenter({ activeSymbol = 'AAPL', lang = '
 
                                 {/* Enter button */}
                                 <div className="mt-5 flex justify-end">
-                                    <div className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${plugin.gradient} rounded-xl text-white text-[11px] font-bold opacity-0 group-hover:opacity-100 transition-all shadow-lg`}>
+                                    <div className={`flex items-center gap-2 px-4 py-2 bg-linear-to-r ${plugin.gradient} rounded-xl text-white text-[11px] font-bold opacity-0 group-hover:opacity-100 transition-all shadow-lg`}>
                                         <span>{t.enter_workspace}</span>
                                         <ChevronRight size={12} />
                                     </div>
@@ -298,7 +298,7 @@ export default function FinancialCommandCenter({ activeSymbol = 'AAPL', lang = '
                 </div>
 
                 {/* Bottom info bar */}
-                <div className="mt-6 p-5 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl border border-slate-700 flex items-center justify-between">
+                <div className="mt-6 p-5 bg-linear-to-r from-slate-900 to-slate-800 rounded-2xl border border-slate-700 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm">
                             <Target size={20} className="text-indigo-400" />
