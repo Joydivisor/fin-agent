@@ -11,34 +11,44 @@ export async function POST(req: Request) {
         // 新增接收前端传来的 password 字段
         const { action, email, code, password } = body;
 
+        const emailValue = typeof email === 'string' ? email.trim() : '';
+        const passwordValue = typeof password === 'string' ? password : '';
+        const codeValue = typeof code === 'string' ? code : '';
+        const hasKv = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+
         // 🌟 1. 发送验证码 (仅限新用户注册时触发)
         if (action === 'send') {
+            if (!emailValue) {
+                return NextResponse.json({ error: '邮箱不能为空。' }, { status: 400 });
+            }
+            if (!hasKv) {
+                return NextResponse.json({ error: 'KV 未配置，无法发送验证码。' }, { status: 500 });
+            }
+            if (!resend) {
+                return NextResponse.json({ error: 'RESEND_API_KEY 未配置，无法发送验证码。' }, { status: 500 });
+            }
             const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
             
             // 存入数据库，10分钟过期
-            if (process.env.KV_REST_API_URL) {
-                await kv.set(`verify:${email}`, generatedCode, { ex: 600 });
-            }
+            await kv.set(`verify:${emailValue}`, generatedCode, { ex: 600 });
 
-            if (resend) {
-                await resend.emails.send({
-                    from: 'Fin-Agent <onboarding@resend.dev>',
-                    to: email,
-                    subject: '【FIN-AGENT】您的系统注册验证码',
-                    html: `
-                    <div style="font-family: sans-serif; padding: 30px; background-color: #f8fafc; border-radius: 16px; max-width: 500px;">
-                        <h2 style="color: #4f46e5; margin-bottom: 5px;">Welcome to FIN-AGENT</h2>
-                        <p style="color: #334155; font-weight: bold;">您的专属数字终端注册验证码是：</p>
-                        <div style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #1e293b; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
-                            ${generatedCode}
-                        </div>
-                        <p style="color: #64748b; font-size: 12px; line-height: 1.6;">
-                            该验证码在 10 分钟内有效。如非本人操作，请忽略此邮件。<br>
-                            Fin-Agent: The Autonomous AI Financial Terminal.
-                        </p>
-                    </div>`
-                });
-            }
+            await resend.emails.send({
+                from: 'Fin-Agent <onboarding@resend.dev>',
+                to: emailValue,
+                subject: '【FIN-AGENT】您的系统注册验证码',
+                html: `
+                <div style="font-family: sans-serif; padding: 30px; background-color: #f8fafc; border-radius: 16px; max-width: 500px;">
+                    <h2 style="color: #4f46e5; margin-bottom: 5px;">Welcome to FIN-AGENT</h2>
+                    <p style="color: #334155; font-weight: bold;">您的专属数字终端注册验证码是：</p>
+                    <div style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #1e293b; margin: 20px 0; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
+                        ${generatedCode}
+                    </div>
+                    <p style="color: #64748b; font-size: 12px; line-height: 1.6;">
+                        该验证码在 10 分钟内有效。如非本人操作，请忽略此邮件。<br>
+                        Fin-Agent: The Autonomous AI Financial Terminal.
+                    </p>
+                </div>`
+            });
 
             console.log(`✉️ [Real Auth] Sent to ${email}`);
             return NextResponse.json({ success: true });
@@ -46,19 +56,25 @@ export async function POST(req: Request) {
 
         // 🌟 2. 验证并注册入库 (保存账号和密码)
         if (action === 'verify') {
+            if (!emailValue) {
+                return NextResponse.json({ error: '邮箱不能为空。' }, { status: 400 });
+            }
+            if (!passwordValue) {
+                return NextResponse.json({ error: '密码不能为空。' }, { status: 400 });
+            }
             let isValid = false;
 
-            if (process.env.KV_REST_API_URL) {
-                const savedCode = await kv.get(`verify:${email}`);
+            if (hasKv) {
+                const savedCode = await kv.get(`verify:${emailValue}`);
                 // 验证通过，或者使用万能开发者密码 123456
-                if (String(savedCode) === String(code) || code === '123456') {
+                if (String(savedCode) === String(codeValue) || codeValue === '123456') {
                     isValid = true;
-                    await kv.del(`verify:${email}`); // 阅后即焚
+                    await kv.del(`verify:${emailValue}`); // 阅后即焚
                     
                     // 🎉 核心修改：注册成功，把用户的密码一并存入云端数据库！
-                    await kv.set(`user:${email}`, { email, password, joinedAt: Date.now(), status: 'active' });
+                    await kv.set(`user:${emailValue}`, { email: emailValue, password: passwordValue, joinedAt: Date.now(), status: 'active' });
                 }
-            } else if (code === '123456') {
+            } else if (codeValue === '123456') {
                 isValid = true; // 本地未连接数据库时的保底机制
             }
 
@@ -68,14 +84,28 @@ export async function POST(req: Request) {
 
         // 🌟 3. 密码直接登录 (老用户专属，秒进主页)
         if (action === 'login') {
-            if (process.env.KV_REST_API_URL) {
+            if (!emailValue) {
+                return NextResponse.json({ error: '邮箱不能为空。' }, { status: 400 });
+            }
+            if (!passwordValue) {
+                return NextResponse.json({ error: '密码不能为空。' }, { status: 400 });
+            }
+
+            if (hasKv) {
                 // 去数据库查询该用户
-                const user: any = await kv.get(`user:${email}`);
+                const user: any = await kv.get(`user:${emailValue}`);
                 
                 if (!user) {
                     return NextResponse.json({ error: '账号不存在，请先注册 (Sign up)。' }, { status: 404 });
                 }
-                if (user.password !== password) {
+
+                if (!user.password) {
+                    // Legacy users without a password can set it on first login.
+                    await kv.set(`user:${emailValue}`, { ...user, email: emailValue, password: passwordValue, status: 'active' });
+                    return NextResponse.json({ success: true });
+                }
+
+                if (user.password !== passwordValue) {
                     return NextResponse.json({ error: '密码错误，请重试。' }, { status: 401 });
                 }
                 
@@ -83,7 +113,7 @@ export async function POST(req: Request) {
                 return NextResponse.json({ success: true });
             } else {
                 // 本地未连接数据库时的保底机制
-                if (password === '123456') return NextResponse.json({ success: true });
+                if (passwordValue === '123456') return NextResponse.json({ success: true });
                 return NextResponse.json({ error: '请连接 KV 数据库或使用测试密码 123456' }, { status: 401 });
             }
         }
