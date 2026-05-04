@@ -61,11 +61,11 @@ This rule overrides ALL other language preferences. Never default to Chinese whe
             apiUrl = 'https://api.deepseek.com/v1/chat/completions';
             apiKey = process.env.DEEPSEEK_API_KEY || '';
             // 🌟 真实的心智切换：思考模式用 R1 引擎，极速模式直接切换为 V3 对话引擎！
-            model = useThinking ? 'deepseek-reasoner' : 'deepseek-chat';
+            model = useThinking ? 'deepseek-v4-pro' : 'deepseek-v4-flash';
         } else {
             apiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
             apiKey = process.env.ZHIPU_API_KEY || '';
-            model = 'glm-4-plus';
+            model = 'glm-5';
         }
 
         if (!apiKey) {

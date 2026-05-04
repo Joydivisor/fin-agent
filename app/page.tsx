@@ -16,6 +16,8 @@ import {
     Cell, PieChart, Pie, ComposedChart, CartesianGrid, Line, Bar
 } from 'recharts';
 import FinancialCommandCenter from './components/FinancialCommandCenter';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const TRANSLATIONS = {
     ZH: {
@@ -181,7 +183,7 @@ const MessageFormatter = ({ content, isStreaming }: { content: string, isStreami
                 </div>
             );
         }
-        return <div className="whitespace-pre-wrap">{safeContent}</div>;
+        return <div className="prose prose-sm prose-slate max-w-none prose-headings:font-black prose-headings:text-slate-800 prose-p:text-slate-700 prose-p:leading-relaxed prose-li:text-slate-700 prose-strong:text-slate-900 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-indigo-600 prose-code:text-xs prose-pre:bg-slate-900 prose-pre:text-slate-200 prose-table:text-xs prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-th:bg-slate-100 prose-th:text-slate-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{safeContent}</ReactMarkdown></div>;
     }
 
     let thinkingRaw = '';
@@ -218,7 +220,7 @@ const MessageFormatter = ({ content, isStreaming }: { content: string, isStreami
                     ) : null}
                 </div>
             ) : null}
-            {finalAnswer ? <div className="whitespace-pre-wrap mt-2 text-slate-800 leading-relaxed">{finalAnswer}</div> : null}
+            {finalAnswer ? <div className="mt-2 prose prose-sm prose-slate max-w-none prose-headings:font-black prose-headings:text-slate-800 prose-p:text-slate-700 prose-p:leading-relaxed prose-li:text-slate-700 prose-strong:text-slate-900 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-indigo-600 prose-code:text-xs prose-pre:bg-slate-900 prose-pre:text-slate-200 prose-table:text-xs prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-th:bg-slate-100 prose-th:text-slate-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finalAnswer}</ReactMarkdown></div> : null}
         </div>
     );
 };
@@ -596,6 +598,13 @@ export default function FinAgent() {
     useEffect(() => { if (isGlobalChatActive) globalChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [isGlobalChatActive, globalChatMessages]);
     useEffect(() => { stockChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [stockChatMessages]);
 
+    // ── Debounced Autocomplete Search ──
+    useEffect(() => {
+        if (!searchQuery || searchQuery.length < 1) { setSearchResults([]); return; }
+        const timer = setTimeout(() => { performSearch(); }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     useEffect(() => {
         if (tacticalNews) {
             setTacticalReport('');
@@ -665,9 +674,6 @@ export default function FinAgent() {
             const res = await fetch(`/api/search?q=${searchQuery}`);
             const data = await res.json();
             setSearchResults(data);
-            if (isEnter && Array.isArray(data) && data.length > 0) {
-                handleViewFromSearch(data[0]);
-            }
         } catch (e) {
             setSearchResults([]);
         } finally {
@@ -1138,7 +1144,7 @@ export default function FinAgent() {
                             placeholder={t.search}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && performSearch(true)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); performSearch(); } }}
                         />
                         {isSearching ? <div className="absolute top-full left-0 w-full bg-white border border-slate-200 mt-2 rounded-2xl shadow-2xl py-4 px-4 text-[11px] font-bold text-indigo-500 flex items-center gap-2"><Activity size={14} className="animate-pulse" /> <span>{t.scanning}</span></div> : null}
                         {searchResults.length > 0 ? (
