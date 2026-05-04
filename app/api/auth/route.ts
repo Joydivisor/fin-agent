@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { kv } from '@vercel/kv';
+import { createClient } from '@vercel/kv';
 
 // 初始化邮件客户端
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -14,7 +14,10 @@ export async function POST(req: Request) {
         const emailValue = typeof email === 'string' ? email.trim() : '';
         const passwordValue = typeof password === 'string' ? password : '';
         const codeValue = typeof code === 'string' ? code : '';
-        const hasKv = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+        const kvUrl = process.env.finagent2_KV_REST_API_URL || process.env.KV_REST_API_URL;
+        const kvToken = process.env.finagent2_KV_REST_API_TOKEN || process.env.KV_REST_API_TOKEN;
+        const kvClient = kvUrl && kvToken ? createClient({ url: kvUrl, token: kvToken }) : null;
+        const hasKv = Boolean(kvClient);
 
         // 🌟 1. 发送验证码 (仅限新用户注册时触发)
         if (action === 'send') {
@@ -25,7 +28,7 @@ export async function POST(req: Request) {
             
             // 存入数据库，10分钟过期
             if (hasKv) {
-                await kv.set(`verify:${emailValue}`, generatedCode, { ex: 600 });
+                await kvClient!.set(`verify:${emailValue}`, generatedCode, { ex: 600 });
             }
 
             if (resend) {
@@ -63,14 +66,14 @@ export async function POST(req: Request) {
             let isValid = false;
 
             if (hasKv) {
-                const savedCode = await kv.get(`verify:${emailValue}`);
+                const savedCode = await kvClient!.get(`verify:${emailValue}`);
                 // 验证通过，或者使用万能开发者密码 123456
                 if (String(savedCode) === String(codeValue) || codeValue === '123456') {
                     isValid = true;
-                    await kv.del(`verify:${emailValue}`); // 阅后即焚
+                    await kvClient!.del(`verify:${emailValue}`); // 阅后即焚
                     
                     // 🎉 注册成功，把用户的密码一并存入云端数据库！
-                    await kv.set(`user:${emailValue}`, { email: emailValue, password: passwordValue, joinedAt: Date.now(), status: 'active' });
+                    await kvClient!.set(`user:${emailValue}`, { email: emailValue, password: passwordValue, joinedAt: Date.now(), status: 'active' });
                 }
             } else if (codeValue === '123456') {
                 isValid = true; // 无 KV 也允许通过万能码完成注册流程
@@ -91,7 +94,7 @@ export async function POST(req: Request) {
 
             if (hasKv) {
                 // 去数据库查询该用户
-                const user: any = await kv.get(`user:${emailValue}`);
+                const user: any = await kvClient!.get(`user:${emailValue}`);
                 
                 if (!user) {
                     return NextResponse.json({ error: '账号不存在，请先注册 (Sign up)。' }, { status: 404 });
@@ -99,7 +102,7 @@ export async function POST(req: Request) {
 
                 if (!user.password) {
                     // Legacy users without a password can set it on first login.
-                    await kv.set(`user:${emailValue}`, { ...user, email: emailValue, password: passwordValue, status: 'active' });
+                    await kvClient!.set(`user:${emailValue}`, { ...user, email: emailValue, password: passwordValue, status: 'active' });
                     return NextResponse.json({ success: true });
                 }
 
